@@ -14,16 +14,154 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      chapters: {
+        Row: {
+          chapter_number: number
+          chapter_title: string | null
+          created_at: string
+          id: string
+          manga_id: string
+        }
+        Insert: {
+          chapter_number: number
+          chapter_title?: string | null
+          created_at?: string
+          id?: string
+          manga_id: string
+        }
+        Update: {
+          chapter_number?: number
+          chapter_title?: string | null
+          created_at?: string
+          id?: string
+          manga_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chapters_manga_id_fkey"
+            columns: ["manga_id"]
+            isOneToOne: false
+            referencedRelation: "manga"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      manga: {
+        Row: {
+          cover_image: string | null
+          created_at: string
+          created_by: string
+          description: string | null
+          genre: string | null
+          id: string
+          title: string
+        }
+        Insert: {
+          cover_image?: string | null
+          created_at?: string
+          created_by: string
+          description?: string | null
+          genre?: string | null
+          id?: string
+          title: string
+        }
+        Update: {
+          cover_image?: string | null
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          genre?: string | null
+          id?: string
+          title?: string
+        }
+        Relationships: []
+      }
+      pages: {
+        Row: {
+          chapter_id: string
+          created_at: string
+          id: string
+          image_url: string
+          page_order: number
+        }
+        Insert: {
+          chapter_id: string
+          created_at?: string
+          id?: string
+          image_url: string
+          page_order: number
+        }
+        Update: {
+          chapter_id?: string
+          created_at?: string
+          id?: string
+          image_url?: string
+          page_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pages_chapter_id_fkey"
+            columns: ["chapter_id"]
+            isOneToOne: false
+            referencedRelation: "chapters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          id: string
+          username: string
+        }
+        Insert: {
+          created_at?: string
+          id: string
+          username: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          username?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "uploader" | "reader"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +288,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "uploader", "reader"],
+    },
   },
 } as const
