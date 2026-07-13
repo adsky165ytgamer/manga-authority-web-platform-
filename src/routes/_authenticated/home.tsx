@@ -2,7 +2,8 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { signPaths } from "@/lib/storage";
-import { BookOpen, Plus } from "lucide-react";
+import { BookOpen, Search } from "lucide-react";
+import { useMemo, useState } from "react";
 
 export const Route = createFileRoute("/_authenticated/home")({
   component: HomePage,
@@ -11,8 +12,8 @@ export const Route = createFileRoute("/_authenticated/home")({
 type MangaCard = {
   id: string;
   title: string;
-  description: string | null;
   genre: string | null;
+  status: string;
   cover_image: string | null;
   chapter_count: number;
   coverUrl: string | null;
@@ -21,7 +22,7 @@ type MangaCard = {
 async function loadManga(): Promise<MangaCard[]> {
   const { data: mangas, error } = await supabase
     .from("manga")
-    .select("id, title, description, genre, cover_image, created_at")
+    .select("id, title, genre, status, cover_image, created_at")
     .order("created_at", { ascending: false });
   if (error) throw error;
   if (!mangas || mangas.length === 0) return [];
@@ -39,11 +40,11 @@ async function loadManga(): Promise<MangaCard[]> {
   const coverMap = new Map<string, string>();
   covers.forEach((c, i) => coverMap.set(c, signed[i]));
 
-  return mangas.map((m) => ({
+  return mangas.map((m: any) => ({
     id: m.id,
     title: m.title,
-    description: m.description,
     genre: m.genre,
+    status: m.status ?? "ongoing",
     cover_image: m.cover_image,
     chapter_count: counts.get(m.id) ?? 0,
     coverUrl: m.cover_image ? coverMap.get(m.cover_image) ?? null : null,
@@ -52,20 +53,33 @@ async function loadManga(): Promise<MangaCard[]> {
 
 function HomePage() {
   const { data, isLoading } = useQuery({ queryKey: ["manga-list"], queryFn: loadManga });
+  const [q, setQ] = useState("");
+
+  const filtered = useMemo(() => {
+    if (!data) return [];
+    const s = q.trim().toLowerCase();
+    if (!s) return data;
+    return data.filter((m) =>
+      m.title.toLowerCase().includes(s) ||
+      (m.genre?.toLowerCase().includes(s) ?? false)
+    );
+  }, [data, q]);
 
   return (
     <div>
-      <div className="mb-6 flex items-end justify-between gap-4">
-        <div>
-          <h1 className="silver-text font-display text-3xl sm:text-4xl font-bold tracking-wider">LIBRARY</h1>
-          <p className="mt-1 text-sm text-muted-foreground">The Manga Authority archive.</p>
-        </div>
-        <Link
-          to="/upload"
-          className="btn-metal hover:btn-metal-hover inline-flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold tracking-widest uppercase"
-        >
-          <Plus className="h-4 w-4" /> New
-        </Link>
+      <div className="mb-6">
+        <h1 className="silver-text font-display text-3xl sm:text-4xl font-bold tracking-wider">LIBRARY</h1>
+        <p className="mt-1 text-sm text-muted-foreground">The Manga Authority archive.</p>
+      </div>
+
+      <div className="mb-6 relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-silver/60" />
+        <input
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="Search title or genre…"
+          className="w-full bg-black/60 border border-border rounded-lg pl-10 pr-4 py-2.5 text-sm text-silver-bright placeholder:text-muted-foreground focus:border-silver/50 focus:outline-none focus:ring-2 focus:ring-silver/10 transition"
+        />
       </div>
 
       {isLoading && <div className="text-center text-muted-foreground py-16">Loading…</div>}
@@ -74,22 +88,23 @@ function HomePage() {
         <div className="metal-card p-10 text-center animate-fade-in">
           <BookOpen className="mx-auto h-10 w-10 text-silver mb-3" />
           <h2 className="silver-text font-display text-xl font-semibold">No manga yet</h2>
-          <p className="mt-2 text-sm text-muted-foreground">Upload the first series to begin the archive.</p>
-          <Link to="/upload" className="btn-metal hover:btn-metal-hover mt-6 inline-flex items-center gap-2 rounded-lg px-4 py-2 text-xs font-semibold tracking-widest uppercase">
-            <Plus className="h-4 w-4" /> Upload Manga
-          </Link>
+          <p className="mt-2 text-sm text-muted-foreground">The archive is empty.</p>
         </div>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-        {data?.map((m) => (
+      {!isLoading && filtered.length === 0 && data && data.length > 0 && (
+        <div className="text-center text-sm text-muted-foreground py-10">No matches for &ldquo;{q}&rdquo;.</div>
+      )}
+
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5">
+        {filtered.map((m) => (
           <Link
             key={m.id}
             to="/manga/$id"
             params={{ id: m.id }}
             className="metal-card group overflow-hidden transition hover:shadow-[0_0_28px_-8px_rgba(192,192,192,0.35)] hover:-translate-y-0.5 duration-300"
           >
-            <div className="aspect-[3/4] w-full overflow-hidden bg-gradient-to-br from-neutral-900 to-black">
+            <div className="aspect-[3/4] w-full overflow-hidden bg-gradient-to-br from-neutral-900 to-black relative">
               {m.coverUrl ? (
                 <img src={m.coverUrl} alt={m.title} className="h-full w-full object-cover transition duration-500 group-hover:scale-105" loading="lazy" />
               ) : (
@@ -97,13 +112,15 @@ function HomePage() {
                   <BookOpen className="h-12 w-12" />
                 </div>
               )}
+              <div className="absolute top-2 left-2 bg-black/70 backdrop-blur-sm px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-widest text-silver-bright border border-silver/20">
+                {m.status}
+              </div>
             </div>
-            <div className="p-4">
-              <h3 className="silver-text font-display text-lg font-bold tracking-wide truncate">{m.title}</h3>
-              {m.genre && <p className="mt-0.5 text-xs uppercase tracking-[0.2em] text-silver/70">{m.genre}</p>}
-              {m.description && <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">{m.description}</p>}
-              <div className="mt-3 text-[11px] font-semibold uppercase tracking-widest text-silver/60">
-                {m.chapter_count} Chapter{m.chapter_count === 1 ? "" : "s"}
+            <div className="p-3">
+              <h3 className="silver-text font-display text-sm sm:text-base font-bold tracking-wide truncate">{m.title}</h3>
+              {m.genre && <p className="mt-0.5 text-[10px] uppercase tracking-[0.2em] text-silver/70 truncate">{m.genre}</p>}
+              <div className="mt-1.5 text-[10px] font-semibold uppercase tracking-widest text-silver/50">
+                {m.chapter_count} Ch
               </div>
             </div>
           </Link>
