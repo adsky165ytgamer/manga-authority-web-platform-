@@ -54,6 +54,7 @@ export type Database = {
           description: string | null
           genre: string | null
           id: string
+          status: Database["public"]["Enums"]["manga_status"]
           title: string
         }
         Insert: {
@@ -63,6 +64,7 @@ export type Database = {
           description?: string | null
           genre?: string | null
           id?: string
+          status?: Database["public"]["Enums"]["manga_status"]
           title: string
         }
         Update: {
@@ -72,6 +74,7 @@ export type Database = {
           description?: string | null
           genre?: string | null
           id?: string
+          status?: Database["public"]["Enums"]["manga_status"]
           title?: string
         }
         Relationships: []
@@ -162,6 +165,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "uploader" | "reader"
+      manga_status: "ongoing" | "completed" | "hiatus" | "cancelled"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -290,6 +294,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "uploader", "reader"],
+      manga_status: ["ongoing", "completed", "hiatus", "cancelled"],
     },
   },
 } as const
