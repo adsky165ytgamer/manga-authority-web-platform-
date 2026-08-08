@@ -289,6 +289,7 @@ function ChapterMenu({ onRename, onContent, onReplace, onDelete }: { onRename: (
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
           <div className="absolute right-0 top-full mt-1 z-50 min-w-[160px] metal-card p-1 animate-fade-in">
             <MenuItem icon={Pencil} label="Rename" onClick={() => { setOpen(false); onRename(); }} />
+            <MenuItem icon={BookText} label="Text / audio / PDF" onClick={() => { setOpen(false); onContent(); }} />
             <MenuItem icon={RefreshCw} label="Replace pages" onClick={() => { setOpen(false); onReplace(); }} />
             <MenuItem icon={Trash2} label="Delete" danger onClick={() => { setOpen(false); onDelete(); }} />
           </div>
