@@ -14,6 +14,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedUploadRouteImport } from './routes/_authenticated/upload'
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
+import { Route as AuthenticatedMembersRouteImport } from './routes/_authenticated/members'
 import { Route as AuthenticatedHomeRouteImport } from './routes/_authenticated/home'
 import { Route as AuthenticatedAccountRouteImport } from './routes/_authenticated/account'
 import { Route as AuthenticatedAboutRouteImport } from './routes/_authenticated/about'
@@ -42,6 +43,11 @@ const AuthenticatedUploadRoute = AuthenticatedUploadRouteImport.update({
 const AuthenticatedProfileRoute = AuthenticatedProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedMembersRoute = AuthenticatedMembersRouteImport.update({
+  id: '/members',
+  path: '/members',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedHomeRoute = AuthenticatedHomeRouteImport.update({
@@ -77,6 +83,7 @@ export interface FileRoutesByFullPath {
   '/about': typeof AuthenticatedAboutRoute
   '/account': typeof AuthenticatedAccountRoute
   '/home': typeof AuthenticatedHomeRoute
+  '/members': typeof AuthenticatedMembersRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/upload': typeof AuthenticatedUploadRoute
   '/manga/$id': typeof AuthenticatedMangaIdRouteWithChildren
@@ -88,6 +95,7 @@ export interface FileRoutesByTo {
   '/about': typeof AuthenticatedAboutRoute
   '/account': typeof AuthenticatedAccountRoute
   '/home': typeof AuthenticatedHomeRoute
+  '/members': typeof AuthenticatedMembersRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/upload': typeof AuthenticatedUploadRoute
   '/manga/$id': typeof AuthenticatedMangaIdRouteWithChildren
@@ -101,6 +109,7 @@ export interface FileRoutesById {
   '/_authenticated/about': typeof AuthenticatedAboutRoute
   '/_authenticated/account': typeof AuthenticatedAccountRoute
   '/_authenticated/home': typeof AuthenticatedHomeRoute
+  '/_authenticated/members': typeof AuthenticatedMembersRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/upload': typeof AuthenticatedUploadRoute
   '/_authenticated/manga/$id': typeof AuthenticatedMangaIdRouteWithChildren
@@ -114,6 +123,7 @@ export interface FileRouteTypes {
     | '/about'
     | '/account'
     | '/home'
+    | '/members'
     | '/profile'
     | '/upload'
     | '/manga/$id'
@@ -125,6 +135,7 @@ export interface FileRouteTypes {
     | '/about'
     | '/account'
     | '/home'
+    | '/members'
     | '/profile'
     | '/upload'
     | '/manga/$id'
@@ -137,6 +148,7 @@ export interface FileRouteTypes {
     | '/_authenticated/about'
     | '/_authenticated/account'
     | '/_authenticated/home'
+    | '/_authenticated/members'
     | '/_authenticated/profile'
     | '/_authenticated/upload'
     | '/_authenticated/manga/$id'
@@ -184,6 +196,13 @@ declare module '@tanstack/react-router' {
       path: '/profile'
       fullPath: '/profile'
       preLoaderRoute: typeof AuthenticatedProfileRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/members': {
+      id: '/_authenticated/members'
+      path: '/members'
+      fullPath: '/members'
+      preLoaderRoute: typeof AuthenticatedMembersRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/home': {
@@ -240,6 +259,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAboutRoute: typeof AuthenticatedAboutRoute
   AuthenticatedAccountRoute: typeof AuthenticatedAccountRoute
   AuthenticatedHomeRoute: typeof AuthenticatedHomeRoute
+  AuthenticatedMembersRoute: typeof AuthenticatedMembersRoute
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
   AuthenticatedUploadRoute: typeof AuthenticatedUploadRoute
   AuthenticatedMangaIdRoute: typeof AuthenticatedMangaIdRouteWithChildren
@@ -249,6 +269,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAboutRoute: AuthenticatedAboutRoute,
   AuthenticatedAccountRoute: AuthenticatedAccountRoute,
   AuthenticatedHomeRoute: AuthenticatedHomeRoute,
+  AuthenticatedMembersRoute: AuthenticatedMembersRoute,
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
   AuthenticatedUploadRoute: AuthenticatedUploadRoute,
   AuthenticatedMangaIdRoute: AuthenticatedMangaIdRouteWithChildren,
