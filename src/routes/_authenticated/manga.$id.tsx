@@ -255,6 +255,16 @@ function MangaDetail() {
           onDone={() => { refresh(); setReplaceChapter(null); }}
         />
       )}
+      {contentChapter && (
+        <ChapterContentModal
+          chapterId={contentChapter.id}
+          chapterNumber={contentChapter.chapter_number}
+          mangaId={manga.id}
+          userId={user.id}
+          onClose={() => setContentChapter(null)}
+          onDone={() => { refresh(); setContentChapter(null); }}
+        />
+      )}
 
       <style>{`
         .input-metal { width:100%; background:#0a0a0a; border:1px solid #2b2b2b; border-radius:.5rem; padding:.55rem .75rem; color:#E8E8E8; font-size:.9rem; outline:none; }
