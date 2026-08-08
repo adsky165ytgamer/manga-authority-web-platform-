@@ -14,6 +14,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedUploadRouteImport } from './routes/_authenticated/upload'
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
+import { Route as AuthenticatedPodcastRouteImport } from './routes/_authenticated/podcast'
 import { Route as AuthenticatedMusicRouteImport } from './routes/_authenticated/music'
 import { Route as AuthenticatedMembersRouteImport } from './routes/_authenticated/members'
 import { Route as AuthenticatedHomeRouteImport } from './routes/_authenticated/home'
@@ -44,6 +45,11 @@ const AuthenticatedUploadRoute = AuthenticatedUploadRouteImport.update({
 const AuthenticatedProfileRoute = AuthenticatedProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedPodcastRoute = AuthenticatedPodcastRouteImport.update({
+  id: '/podcast',
+  path: '/podcast',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedMusicRoute = AuthenticatedMusicRouteImport.update({
@@ -91,6 +97,7 @@ export interface FileRoutesByFullPath {
   '/home': typeof AuthenticatedHomeRoute
   '/members': typeof AuthenticatedMembersRoute
   '/music': typeof AuthenticatedMusicRoute
+  '/podcast': typeof AuthenticatedPodcastRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/upload': typeof AuthenticatedUploadRoute
   '/manga/$id': typeof AuthenticatedMangaIdRouteWithChildren
@@ -104,6 +111,7 @@ export interface FileRoutesByTo {
   '/home': typeof AuthenticatedHomeRoute
   '/members': typeof AuthenticatedMembersRoute
   '/music': typeof AuthenticatedMusicRoute
+  '/podcast': typeof AuthenticatedPodcastRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/upload': typeof AuthenticatedUploadRoute
   '/manga/$id': typeof AuthenticatedMangaIdRouteWithChildren
@@ -119,6 +127,7 @@ export interface FileRoutesById {
   '/_authenticated/home': typeof AuthenticatedHomeRoute
   '/_authenticated/members': typeof AuthenticatedMembersRoute
   '/_authenticated/music': typeof AuthenticatedMusicRoute
+  '/_authenticated/podcast': typeof AuthenticatedPodcastRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/upload': typeof AuthenticatedUploadRoute
   '/_authenticated/manga/$id': typeof AuthenticatedMangaIdRouteWithChildren
@@ -134,6 +143,7 @@ export interface FileRouteTypes {
     | '/home'
     | '/members'
     | '/music'
+    | '/podcast'
     | '/profile'
     | '/upload'
     | '/manga/$id'
@@ -147,6 +157,7 @@ export interface FileRouteTypes {
     | '/home'
     | '/members'
     | '/music'
+    | '/podcast'
     | '/profile'
     | '/upload'
     | '/manga/$id'
@@ -161,6 +172,7 @@ export interface FileRouteTypes {
     | '/_authenticated/home'
     | '/_authenticated/members'
     | '/_authenticated/music'
+    | '/_authenticated/podcast'
     | '/_authenticated/profile'
     | '/_authenticated/upload'
     | '/_authenticated/manga/$id'
@@ -208,6 +220,13 @@ declare module '@tanstack/react-router' {
       path: '/profile'
       fullPath: '/profile'
       preLoaderRoute: typeof AuthenticatedProfileRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/podcast': {
+      id: '/_authenticated/podcast'
+      path: '/podcast'
+      fullPath: '/podcast'
+      preLoaderRoute: typeof AuthenticatedPodcastRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/music': {
@@ -280,6 +299,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedHomeRoute: typeof AuthenticatedHomeRoute
   AuthenticatedMembersRoute: typeof AuthenticatedMembersRoute
   AuthenticatedMusicRoute: typeof AuthenticatedMusicRoute
+  AuthenticatedPodcastRoute: typeof AuthenticatedPodcastRoute
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
   AuthenticatedUploadRoute: typeof AuthenticatedUploadRoute
   AuthenticatedMangaIdRoute: typeof AuthenticatedMangaIdRouteWithChildren
@@ -291,6 +311,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedHomeRoute: AuthenticatedHomeRoute,
   AuthenticatedMembersRoute: AuthenticatedMembersRoute,
   AuthenticatedMusicRoute: AuthenticatedMusicRoute,
+  AuthenticatedPodcastRoute: AuthenticatedPodcastRoute,
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
   AuthenticatedUploadRoute: AuthenticatedUploadRoute,
   AuthenticatedMangaIdRoute: AuthenticatedMangaIdRouteWithChildren,
