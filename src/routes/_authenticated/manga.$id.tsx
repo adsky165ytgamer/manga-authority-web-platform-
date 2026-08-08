@@ -1,10 +1,11 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { signPath, uploadFile } from "@/lib/storage";
+import { deleteMangaCompletely } from "@/lib/manga-admin";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { BookOpen, Plus, ChevronRight, Loader2, ImagePlus, X, Search, Pencil, Trash2, MoreVertical, RefreshCw } from "lucide-react";
+import { BookOpen, Plus, ChevronRight, Loader2, ImagePlus, X, Search, Pencil, Trash2, MoreVertical, RefreshCw, BookText, FileAudio } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/manga/$id")({
   component: MangaDetail,
