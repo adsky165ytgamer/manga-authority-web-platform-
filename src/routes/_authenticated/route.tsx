@@ -19,6 +19,7 @@ function AuthedLayout() {
   const router = useRouter();
   const location = useLocation();
   const [open, setOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
   const username = emailToUsername(user.email);
 
   useEffect(() => { setOpen(false); }, [location.pathname]);
