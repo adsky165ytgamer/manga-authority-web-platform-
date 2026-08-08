@@ -101,12 +101,33 @@ function MangaDetail() {
               {manga.genre && <div className="mt-1 text-xs uppercase tracking-[0.25em] text-silver/70">{manga.genre}</div>}
             </div>
             {canEdit && (
-              <button
-                onClick={() => setEditOpen(true)}
-                className="btn-metal hover:btn-metal-hover inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold tracking-widest uppercase shrink-0"
-              >
-                <Pencil className="h-3.5 w-3.5" /> Edit
-              </button>
+              <div className="flex shrink-0 items-center gap-2">
+                <button
+                  onClick={() => setEditOpen(true)}
+                  className="btn-metal hover:btn-metal-hover inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold tracking-widest uppercase"
+                >
+                  <Pencil className="h-3.5 w-3.5" /> Edit
+                </button>
+                <button
+                  disabled={deletingManga}
+                  onClick={async () => {
+                    if (!confirm(`Delete "${manga.title}" with every chapter, page and file? This cannot be undone.`)) return;
+                    setDeletingManga(true);
+                    try {
+                      await deleteMangaCompletely(manga.id);
+                      toast.success("Manga deleted");
+                      qc.invalidateQueries({ queryKey: ["manga-list"] });
+                      router.navigate({ to: "/home" });
+                    } catch (err: any) {
+                      toast.error(err?.message ?? "Delete failed");
+                      setDeletingManga(false);
+                    }
+                  }}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-destructive/50 px-3 py-2 text-xs font-semibold uppercase tracking-widest text-destructive hover:bg-destructive/10 disabled:opacity-60"
+                >
+                  <Trash2 className="h-3.5 w-3.5" /> Delete
+                </button>
+              </div>
             )}
           </div>
           {manga.description && <p className="mt-4 text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">{manga.description}</p>}
