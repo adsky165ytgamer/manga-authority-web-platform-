@@ -181,9 +181,18 @@ function MangaDetail() {
               </div>
               <ChevronRight className="h-4 w-4 text-silver/60 group-hover:text-silver-bright transition" />
             </Link>
+            <Link
+              to="/manga/$id/read/$chapterId"
+              params={{ id: manga.id, chapterId: c.id }}
+              className="rounded-md p-2 text-silver/70 hover:bg-white/5 hover:text-silver-bright"
+              aria-label="Reading mode"
+            >
+              <BookText className="h-4 w-4" />
+            </Link>
             {canEdit && (
               <ChapterMenu
                 onRename={() => setEditChapter(c)}
+                onContent={() => setContentChapter({ id: c.id, chapter_number: c.chapter_number })}
                 onReplace={() => setReplaceChapter({ id: c.id })}
                 onDelete={async () => {
                   if (!confirm(`Delete Chapter ${c.chapter_number}? This removes all pages.`)) return;
