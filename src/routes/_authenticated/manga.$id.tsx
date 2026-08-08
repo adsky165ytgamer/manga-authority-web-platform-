@@ -273,7 +273,7 @@ function InfoRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-function ChapterMenu({ onRename, onReplace, onDelete }: { onRename: () => void; onReplace: () => void; onDelete: () => void }) {
+function ChapterMenu({ onRename, onContent, onReplace, onDelete }: { onRename: () => void; onContent: () => void; onReplace: () => void; onDelete: () => void }) {
   const [open, setOpen] = useState(false);
   return (
     <div className="relative">
