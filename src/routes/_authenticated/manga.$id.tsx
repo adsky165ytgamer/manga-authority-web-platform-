@@ -50,6 +50,9 @@ function MangaDetail() {
   const [chapterSearch, setChapterSearch] = useState("");
   const [editChapter, setEditChapter] = useState<{ id: string; chapter_number: number; chapter_title: string | null } | null>(null);
   const [replaceChapter, setReplaceChapter] = useState<{ id: string } | null>(null);
+  const [contentChapter, setContentChapter] = useState<{ id: string; chapter_number: number } | null>(null);
+  const [deletingManga, setDeletingManga] = useState(false);
+  const router = useRouter();
 
   const { data, isLoading } = useQuery({
     queryKey: ["manga", id],
