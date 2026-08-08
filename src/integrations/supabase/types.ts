@@ -16,25 +16,37 @@ export type Database = {
     Tables: {
       chapters: {
         Row: {
+          audio_url: string | null
           chapter_number: number
           chapter_title: string | null
           created_at: string
           id: string
           manga_id: string
+          pdf_url: string | null
+          text_content: string | null
+          updated_at: string
         }
         Insert: {
+          audio_url?: string | null
           chapter_number: number
           chapter_title?: string | null
           created_at?: string
           id?: string
           manga_id: string
+          pdf_url?: string | null
+          text_content?: string | null
+          updated_at?: string
         }
         Update: {
+          audio_url?: string | null
           chapter_number?: number
           chapter_title?: string | null
           created_at?: string
           id?: string
           manga_id?: string
+          pdf_url?: string | null
+          text_content?: string | null
+          updated_at?: string
         }
         Relationships: [
           {
@@ -48,36 +60,128 @@ export type Database = {
       }
       manga: {
         Row: {
+          author: string | null
           cover_image: string | null
           created_at: string
           created_by: string
           description: string | null
+          external_url: string | null
           genre: string | null
           id: string
           status: Database["public"]["Enums"]["manga_status"]
           title: string
         }
         Insert: {
+          author?: string | null
           cover_image?: string | null
           created_at?: string
           created_by: string
           description?: string | null
+          external_url?: string | null
           genre?: string | null
           id?: string
           status?: Database["public"]["Enums"]["manga_status"]
           title: string
         }
         Update: {
+          author?: string | null
           cover_image?: string | null
           created_at?: string
           created_by?: string
           description?: string | null
+          external_url?: string | null
           genre?: string | null
           id?: string
           status?: Database["public"]["Enums"]["manga_status"]
           title?: string
         }
         Relationships: []
+      }
+      music: {
+        Row: {
+          artist: string | null
+          audio_url: string
+          chapter_id: string | null
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          manga_id: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          artist?: string | null
+          audio_url: string
+          chapter_id?: string | null
+          created_at?: string
+          created_by: string
+          description?: string | null
+          id?: string
+          manga_id?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          artist?: string | null
+          audio_url?: string
+          chapter_id?: string | null
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          manga_id?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "music_chapter_id_fkey"
+            columns: ["chapter_id"]
+            isOneToOne: false
+            referencedRelation: "chapters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "music_manga_id_fkey"
+            columns: ["manga_id"]
+            isOneToOne: false
+            referencedRelation: "manga"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ownership_transfers: {
+        Row: {
+          created_at: string
+          from_user: string
+          id: string
+          manga_id: string
+          to_user: string
+        }
+        Insert: {
+          created_at?: string
+          from_user: string
+          id?: string
+          manga_id: string
+          to_user: string
+        }
+        Update: {
+          created_at?: string
+          from_user?: string
+          id?: string
+          manga_id?: string
+          to_user?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ownership_transfers_manga_id_fkey"
+            columns: ["manga_id"]
+            isOneToOne: false
+            referencedRelation: "manga"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       pages: {
         Row: {
@@ -113,21 +217,87 @@ export type Database = {
       }
       profiles: {
         Row: {
+          bio: string | null
+          contribution: string | null
           created_at: string
           id: string
+          role_title: string | null
           username: string
         }
         Insert: {
+          bio?: string | null
+          contribution?: string | null
           created_at?: string
           id: string
+          role_title?: string | null
           username: string
         }
         Update: {
+          bio?: string | null
+          contribution?: string | null
           created_at?: string
           id?: string
+          role_title?: string | null
           username?: string
         }
         Relationships: []
+      }
+      reviews: {
+        Row: {
+          chapter_id: string | null
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          issue: string
+          issue_type: string | null
+          location: string | null
+          manga_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          chapter_id?: string | null
+          created_at?: string
+          created_by: string
+          description?: string | null
+          id?: string
+          issue: string
+          issue_type?: string | null
+          location?: string | null
+          manga_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          chapter_id?: string | null
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          issue?: string
+          issue_type?: string | null
+          location?: string | null
+          manga_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reviews_chapter_id_fkey"
+            columns: ["chapter_id"]
+            isOneToOne: false
+            referencedRelation: "chapters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reviews_manga_id_fkey"
+            columns: ["manga_id"]
+            isOneToOne: false
+            referencedRelation: "manga"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
@@ -164,7 +334,16 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "uploader" | "reader"
+      app_role:
+        | "admin"
+        | "uploader"
+        | "reader"
+        | "leader"
+        | "manager"
+        | "sub_manager"
+        | "writer"
+        | "reviewer"
+        | "music_producer"
       manga_status: "ongoing" | "completed" | "hiatus" | "cancelled"
     }
     CompositeTypes: {
@@ -293,7 +472,17 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "uploader", "reader"],
+      app_role: [
+        "admin",
+        "uploader",
+        "reader",
+        "leader",
+        "manager",
+        "sub_manager",
+        "writer",
+        "reviewer",
+        "music_producer",
+      ],
       manga_status: ["ongoing", "completed", "hiatus", "cancelled"],
     },
   },

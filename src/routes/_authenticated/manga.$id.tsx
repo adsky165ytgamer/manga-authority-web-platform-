@@ -1,10 +1,11 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { signPath, uploadFile } from "@/lib/storage";
+import { deleteMangaCompletely } from "@/lib/manga-admin";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { BookOpen, Plus, ChevronRight, Loader2, ImagePlus, X, Search, Pencil, Trash2, MoreVertical, RefreshCw } from "lucide-react";
+import { BookOpen, Plus, ChevronRight, Loader2, ImagePlus, X, Search, Pencil, Trash2, MoreVertical, RefreshCw, BookText } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/manga/$id")({
   component: MangaDetail,
@@ -49,6 +50,9 @@ function MangaDetail() {
   const [chapterSearch, setChapterSearch] = useState("");
   const [editChapter, setEditChapter] = useState<{ id: string; chapter_number: number; chapter_title: string | null } | null>(null);
   const [replaceChapter, setReplaceChapter] = useState<{ id: string } | null>(null);
+  const [contentChapter, setContentChapter] = useState<{ id: string; chapter_number: number } | null>(null);
+  const [deletingManga, setDeletingManga] = useState(false);
+  const router = useRouter();
 
   const { data, isLoading } = useQuery({
     queryKey: ["manga", id],
@@ -97,12 +101,33 @@ function MangaDetail() {
               {manga.genre && <div className="mt-1 text-xs uppercase tracking-[0.25em] text-silver/70">{manga.genre}</div>}
             </div>
             {canEdit && (
-              <button
-                onClick={() => setEditOpen(true)}
-                className="btn-metal hover:btn-metal-hover inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold tracking-widest uppercase shrink-0"
-              >
-                <Pencil className="h-3.5 w-3.5" /> Edit
-              </button>
+              <div className="flex shrink-0 items-center gap-2">
+                <button
+                  onClick={() => setEditOpen(true)}
+                  className="btn-metal hover:btn-metal-hover inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold tracking-widest uppercase"
+                >
+                  <Pencil className="h-3.5 w-3.5" /> Edit
+                </button>
+                <button
+                  disabled={deletingManga}
+                  onClick={async () => {
+                    if (!confirm(`Delete "${manga.title}" with every chapter, page and file? This cannot be undone.`)) return;
+                    setDeletingManga(true);
+                    try {
+                      await deleteMangaCompletely(manga.id);
+                      toast.success("Manga deleted");
+                      qc.invalidateQueries({ queryKey: ["manga-list"] });
+                      router.navigate({ to: "/home" });
+                    } catch (err: any) {
+                      toast.error(err?.message ?? "Delete failed");
+                      setDeletingManga(false);
+                    }
+                  }}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-destructive/50 px-3 py-2 text-xs font-semibold uppercase tracking-widest text-destructive hover:bg-destructive/10 disabled:opacity-60"
+                >
+                  <Trash2 className="h-3.5 w-3.5" /> Delete
+                </button>
+              </div>
             )}
           </div>
           {manga.description && <p className="mt-4 text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">{manga.description}</p>}
@@ -156,9 +181,18 @@ function MangaDetail() {
               </div>
               <ChevronRight className="h-4 w-4 text-silver/60 group-hover:text-silver-bright transition" />
             </Link>
+            <Link
+              to="/manga/$id/read/$chapterId"
+              params={{ id: manga.id, chapterId: c.id }}
+              className="rounded-md p-2 text-silver/70 hover:bg-white/5 hover:text-silver-bright"
+              aria-label="Reading mode"
+            >
+              <BookText className="h-4 w-4" />
+            </Link>
             {canEdit && (
               <ChapterMenu
                 onRename={() => setEditChapter(c)}
+                onContent={() => setContentChapter({ id: c.id, chapter_number: c.chapter_number })}
                 onReplace={() => setReplaceChapter({ id: c.id })}
                 onDelete={async () => {
                   if (!confirm(`Delete Chapter ${c.chapter_number}? This removes all pages.`)) return;
@@ -221,6 +255,16 @@ function MangaDetail() {
           onDone={() => { refresh(); setReplaceChapter(null); }}
         />
       )}
+      {contentChapter && (
+        <ChapterContentModal
+          chapterId={contentChapter.id}
+          chapterNumber={contentChapter.chapter_number}
+          mangaId={manga.id}
+          userId={user.id}
+          onClose={() => setContentChapter(null)}
+          onDone={() => { refresh(); setContentChapter(null); }}
+        />
+      )}
 
       <style>{`
         .input-metal { width:100%; background:#0a0a0a; border:1px solid #2b2b2b; border-radius:.5rem; padding:.55rem .75rem; color:#E8E8E8; font-size:.9rem; outline:none; }
@@ -239,7 +283,7 @@ function InfoRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-function ChapterMenu({ onRename, onReplace, onDelete }: { onRename: () => void; onReplace: () => void; onDelete: () => void }) {
+function ChapterMenu({ onRename, onContent, onReplace, onDelete }: { onRename: () => void; onContent: () => void; onReplace: () => void; onDelete: () => void }) {
   const [open, setOpen] = useState(false);
   return (
     <div className="relative">
@@ -255,6 +299,7 @@ function ChapterMenu({ onRename, onReplace, onDelete }: { onRename: () => void; 
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
           <div className="absolute right-0 top-full mt-1 z-50 min-w-[160px] metal-card p-1 animate-fade-in">
             <MenuItem icon={Pencil} label="Rename" onClick={() => { setOpen(false); onRename(); }} />
+            <MenuItem icon={BookText} label="Text / audio / PDF" onClick={() => { setOpen(false); onContent(); }} />
             <MenuItem icon={RefreshCw} label="Replace pages" onClick={() => { setOpen(false); onReplace(); }} />
             <MenuItem icon={Trash2} label="Delete" danger onClick={() => { setOpen(false); onDelete(); }} />
           </div>
@@ -563,11 +608,79 @@ function Modal({ title, children, onClose }: { title: string; children: React.Re
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
     <label className="block">
       <span className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.2em] text-silver">{label}</span>
       {children}
+      {hint && <span className="mt-1 block text-[11px] text-muted-foreground">{hint}</span>}
     </label>
+  );
+}
+
+function ChapterContentModal({ chapterId, chapterNumber, mangaId, userId, onClose, onDone }: {
+  chapterId: string; chapterNumber: number; mangaId: string; userId: string; onClose: () => void; onDone: () => void;
+}) {
+  const [text, setText] = useState("");
+  const [pdf, setPdf] = useState<File | null>(null);
+  const [audio, setAudio] = useState<File | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const { isLoading } = useQuery({
+    queryKey: ["chapter-content", chapterId],
+    queryFn: async () => {
+      const { data } = await supabase.from("chapters").select("text_content").eq("id", chapterId).maybeSingle();
+      setText(data?.text_content ?? "");
+      return data ?? {};
+    },
+  });
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const update: any = { text_content: text.trim() || null };
+      if (pdf) {
+        const path = `${userId}/manga/${mangaId}/chapters/${chapterId}/original.pdf`;
+        await uploadFile(path, pdf);
+        update.pdf_url = path;
+      }
+      if (audio) {
+        const ext = audio.name.split(".").pop() ?? "mp3";
+        const path = `${userId}/manga/${mangaId}/chapters/${chapterId}/narration.${ext}`;
+        await uploadFile(path, audio);
+        update.audio_url = path;
+      }
+      const { error } = await supabase.from("chapters").update(update).eq("id", chapterId);
+      if (error) throw error;
+      toast.success("Chapter content saved");
+      onDone();
+    } catch (err: any) { toast.error(err?.message ?? "Save failed"); }
+    finally { setLoading(false); }
+  }
+
+  return (
+    <Modal title={`CHAPTER ${chapterNumber} CONTENT`} onClose={onClose}>
+      <form onSubmit={submit} className="space-y-4">
+        <Field label="Reading mode text">
+          <textarea
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            rows={10}
+            className="input-metal resize-none"
+            placeholder={isLoading ? "Loading…" : "Paste or write the chapter text here…"}
+          />
+        </Field>
+        <Field label="Original PDF" hint="Kept as the source file for this chapter">
+          <input type="file" accept="application/pdf" className="input-metal" onChange={(e) => setPdf(e.target.files?.[0] ?? null)} />
+        </Field>
+        <Field label="Narration audio" hint="Appears in the Podcast section">
+          <input type="file" accept="audio/*" className="input-metal" onChange={(e) => setAudio(e.target.files?.[0] ?? null)} />
+        </Field>
+        <button type="submit" disabled={loading} className="btn-metal hover:btn-metal-hover w-full rounded-lg py-3 text-sm font-bold tracking-[0.2em] disabled:opacity-60">
+          {loading ? <span className="inline-flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" /> Saving…</span> : "SAVE CONTENT"}
+        </button>
+      </form>
+    </Modal>
   );
 }
