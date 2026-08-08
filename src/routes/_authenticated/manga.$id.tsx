@@ -616,3 +616,70 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
     </label>
   );
 }
+
+function ChapterContentModal({ chapterId, chapterNumber, mangaId, userId, onClose, onDone }: {
+  chapterId: string; chapterNumber: number; mangaId: string; userId: string; onClose: () => void; onDone: () => void;
+}) {
+  const [text, setText] = useState("");
+  const [pdf, setPdf] = useState<File | null>(null);
+  const [audio, setAudio] = useState<File | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const { isLoading } = useQuery({
+    queryKey: ["chapter-content", chapterId],
+    queryFn: async () => {
+      const { data } = await supabase.from("chapters").select("text_content").eq("id", chapterId).maybeSingle();
+      setText(data?.text_content ?? "");
+      return data ?? {};
+    },
+  });
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const update: Record<string, string | null> = { text_content: text.trim() || null };
+      if (pdf) {
+        const path = `${userId}/manga/${mangaId}/chapters/${chapterId}/original.pdf`;
+        await uploadFile(path, pdf);
+        update.pdf_url = path;
+      }
+      if (audio) {
+        const ext = audio.name.split(".").pop() ?? "mp3";
+        const path = `${userId}/manga/${mangaId}/chapters/${chapterId}/narration.${ext}`;
+        await uploadFile(path, audio);
+        update.audio_url = path;
+      }
+      const { error } = await supabase.from("chapters").update(update).eq("id", chapterId);
+      if (error) throw error;
+      toast.success("Chapter content saved");
+      onDone();
+    } catch (err: any) { toast.error(err?.message ?? "Save failed"); }
+    finally { setLoading(false); }
+  }
+
+  return (
+    <Modal title={`CHAPTER ${chapterNumber} CONTENT`} onClose={onClose}>
+      <form onSubmit={submit} className="space-y-4">
+        <Field label="Reading mode text">
+          <textarea
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            rows={10}
+            className="input-metal resize-none"
+            placeholder={isLoading ? "Loading…" : "Paste or write the chapter text here…"}
+          />
+        </Field>
+        <Field label="Original PDF" hint="Kept as the source file for this chapter">
+          <input type="file" accept="application/pdf" className="input-metal" onChange={(e) => setPdf(e.target.files?.[0] ?? null)} />
+        </Field>
+        <Field label="Narration audio" hint="Appears in the Podcast section">
+          <input type="file" accept="audio/*" className="input-metal" onChange={(e) => setAudio(e.target.files?.[0] ?? null)} />
+        </Field>
+        <button type="submit" disabled={loading} className="btn-metal hover:btn-metal-hover w-full rounded-lg py-3 text-sm font-bold tracking-[0.2em] disabled:opacity-60">
+          {loading ? <span className="inline-flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" /> Saving…</span> : "SAVE CONTENT"}
+        </button>
+      </form>
+    </Modal>
+  );
+}
