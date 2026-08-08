@@ -5,7 +5,7 @@ import { signPath, uploadFile } from "@/lib/storage";
 import { deleteMangaCompletely } from "@/lib/manga-admin";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { BookOpen, Plus, ChevronRight, Loader2, ImagePlus, X, Search, Pencil, Trash2, MoreVertical, RefreshCw, BookText, FileAudio } from "lucide-react";
+import { BookOpen, Plus, ChevronRight, Loader2, ImagePlus, X, Search, Pencil, Trash2, MoreVertical, RefreshCw, BookText } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/manga/$id")({
   component: MangaDetail,
@@ -639,7 +639,7 @@ function ChapterContentModal({ chapterId, chapterNumber, mangaId, userId, onClos
     e.preventDefault();
     setLoading(true);
     try {
-      const update: Record<string, string | null> = { text_content: text.trim() || null };
+      const update: any = { text_content: text.trim() || null };
       if (pdf) {
         const path = `${userId}/manga/${mangaId}/chapters/${chapterId}/original.pdf`;
         await uploadFile(path, pdf);
