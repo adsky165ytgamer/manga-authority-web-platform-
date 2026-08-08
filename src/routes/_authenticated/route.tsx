@@ -2,7 +2,7 @@ import { createFileRoute, Outlet, redirect, Link, useRouter, useLocation } from 
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
 import { emailToUsername } from "@/lib/username";
-import { Menu, X, Home, Upload, User, Info, LogOut } from "lucide-react";
+import { Menu, X, Home, Upload, User, Info, LogOut, Users, Headphones, Music2, ClipboardCheck, Settings } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
