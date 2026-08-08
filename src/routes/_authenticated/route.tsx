@@ -28,12 +28,22 @@ function AuthedLayout() {
     router.navigate({ to: "/auth", replace: true });
   }
 
-  const nav = [
+  const primary = [
     { to: "/home", label: "Home", icon: Home },
     { to: "/upload", label: "Upload Manga", icon: Upload },
+    { to: "/podcast", label: "Podcast", icon: Headphones },
+    { to: "/music", label: "Music", icon: Music2 },
+  ] as const;
+
+  const more = [
+    { to: "/members", label: "Members", icon: Users },
+    { to: "/internal", label: "Review & R&D", icon: ClipboardCheck },
     { to: "/profile", label: "Profile", icon: User },
+    { to: "/account", label: "Account Tools", icon: Settings },
     { to: "/about", label: "About", icon: Info },
   ] as const;
+
+  const nav = [...primary, ...more];
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -45,7 +55,7 @@ function AuthedLayout() {
             </span>
           </Link>
           <nav className="hidden md:flex items-center gap-1">
-            {nav.map((n) => (
+            {primary.map((n) => (
               <Link
                 key={n.to}
                 to={n.to}
@@ -55,6 +65,36 @@ function AuthedLayout() {
                 {n.label}
               </Link>
             ))}
+            <div className="relative">
+              <button
+                onClick={() => setMoreOpen((v) => !v)}
+                className="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:text-silver-bright hover:bg-white/5 transition"
+              >
+                More
+              </button>
+              {moreOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setMoreOpen(false)} />
+                  <div className="absolute right-0 top-full z-50 mt-1 min-w-[190px] metal-card p-1 animate-fade-in">
+                    {more.map((n) => {
+                      const Icon = n.icon;
+                      return (
+                        <Link
+                          key={n.to}
+                          to={n.to}
+                          onClick={() => setMoreOpen(false)}
+                          className="flex items-center gap-2 rounded-md px-3 py-2 text-xs font-medium text-silver/80 hover:bg-white/5 hover:text-silver-bright"
+                          activeProps={{ className: "text-silver-bright bg-white/5" }}
+                        >
+                          <Icon className="h-3.5 w-3.5" /> {n.label}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
+            </div>
+
             <button
               onClick={signOut}
               className="ml-2 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:text-destructive transition inline-flex items-center gap-1.5"
