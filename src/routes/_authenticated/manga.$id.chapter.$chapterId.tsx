@@ -144,8 +144,8 @@ function ChapterSelector({ mangaId, current, chapters, onClose }: {
   }, [chapters, q]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/85 backdrop-blur-sm p-4 pt-16 animate-fade-in-slow" onClick={onClose}>
-      <div className="metal-card w-full max-w-md max-h-[80vh] flex flex-col overflow-hidden" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-stretch justify-center bg-black/85 backdrop-blur-sm animate-fade-in-slow sm:items-center sm:p-4" onClick={onClose}>
+      <div className="metal-card flex h-[100dvh] w-full max-w-md flex-col overflow-hidden rounded-none sm:h-auto sm:max-h-[80vh] sm:rounded-xl" onClick={(e) => e.stopPropagation()}>
         <div className="p-4 border-b border-border/70 flex items-center justify-between">
           <h3 className="silver-text font-display text-lg font-bold tracking-wider">CHAPTERS</h3>
           <button onClick={onClose} className="text-muted-foreground hover:text-silver-bright"><X className="h-5 w-5" /></button>
@@ -160,7 +160,7 @@ function ChapterSelector({ mangaId, current, chapters, onClose }: {
             className="w-full bg-black/60 border border-border rounded-lg pl-9 pr-3 py-2 text-sm text-silver-bright placeholder:text-muted-foreground focus:border-silver/50 focus:outline-none"
           />
         </div>
-        <div className="overflow-y-auto p-2 space-y-1">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] space-y-1">
           {filtered.map((c) => {
             const active = c.id === current;
             return (
