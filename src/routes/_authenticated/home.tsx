@@ -2,8 +2,10 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { signPaths } from "@/lib/storage";
-import { BookOpen, Search } from "lucide-react";
-import { useMemo, useState } from "react";
+import { BookOpen, Search, Trash2, Loader2 } from "lucide-react";
+import { useMemo, useState, useEffect } from "react";
+import { deleteMangaCompletely } from "@/lib/manga-admin";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/home")({
   component: HomePage,
@@ -17,12 +19,13 @@ type MangaCard = {
   cover_image: string | null;
   chapter_count: number;
   coverUrl: string | null;
+  created_by: string;
 };
 
 async function loadManga(): Promise<MangaCard[]> {
   const { data: mangas, error } = await supabase
     .from("manga")
-    .select("id, title, genre, status, cover_image, created_at")
+    .select("id, title, genre, status, cover_image, created_at, created_by")
     .order("created_at", { ascending: false });
   if (error) throw error;
   if (!mangas || mangas.length === 0) return [];
@@ -48,12 +51,40 @@ async function loadManga(): Promise<MangaCard[]> {
     cover_image: m.cover_image,
     chapter_count: counts.get(m.id) ?? 0,
     coverUrl: m.cover_image ? coverMap.get(m.cover_image) ?? null : null,
+    created_by: m.created_by,
   }));
 }
 
 function HomePage() {
-  const { data, isLoading } = useQuery({ queryKey: ["manga-list"], queryFn: loadManga });
+  const { data, isLoading, refetch } = useQuery({ queryKey: ["manga-list"], queryFn: loadManga });
   const [q, setQ] = useState("");
+  const [me, setMe] = useState<{ id: string; isAdmin: boolean } | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      const { data: auth } = await supabase.auth.getUser();
+      if (!auth.user) return;
+      const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", auth.user.id);
+      setMe({ id: auth.user.id, isAdmin: !!roles?.some((r) => r.role === "admin") });
+    })();
+  }, []);
+
+  const removeManga = async (e: React.MouseEvent, id: string, title: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!confirm(`Delete "${title}" with every chapter, page and file? This cannot be undone.`)) return;
+    setDeletingId(id);
+    try {
+      await deleteMangaCompletely(id);
+      toast.success("Manga deleted");
+      await refetch();
+    } catch (err: any) {
+      toast.error(err?.message ?? "Delete failed");
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   const filtered = useMemo(() => {
     if (!data) return [];
@@ -111,6 +142,16 @@ function HomePage() {
                 <div className="flex h-full w-full items-center justify-center text-silver/40">
                   <BookOpen className="h-12 w-12" />
                 </div>
+              )}
+              {me && (me.isAdmin || me.id === m.created_by) && (
+                <button
+                  onClick={(e) => removeManga(e, m.id, m.title)}
+                  disabled={deletingId === m.id}
+                  aria-label={`Delete ${m.title}`}
+                  className="absolute top-2 right-2 z-10 rounded-md border border-destructive/40 bg-black/75 p-1.5 text-destructive/90 backdrop-blur-sm transition hover:bg-destructive/20 hover:text-destructive disabled:opacity-50"
+                >
+                  {deletingId === m.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                </button>
               )}
               <div className="absolute top-2 left-2 bg-black/70 backdrop-blur-sm px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-widest text-silver-bright border border-silver/20">
                 {m.status}
