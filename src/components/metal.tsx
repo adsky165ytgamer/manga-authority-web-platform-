@@ -3,13 +3,23 @@ import type { ReactNode } from "react";
 
 export function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/85 backdrop-blur-sm p-4 pt-12 overflow-y-auto animate-fade-in-slow" onClick={onClose}>
-      <div className="metal-card w-full max-w-lg p-5 sm:p-6" onClick={(e) => e.stopPropagation()}>
-        <div className="mb-4 flex items-center justify-between">
-          <h3 className="silver-text font-display text-lg font-bold tracking-wider">{title}</h3>
-          <button onClick={onClose} className="text-muted-foreground hover:text-silver-bright"><X className="h-5 w-5" /></button>
+    <div
+      className="fixed inset-0 z-50 flex items-stretch justify-center bg-black/85 backdrop-blur-sm animate-fade-in-slow sm:items-center sm:p-4"
+      onClick={onClose}
+    >
+      <div
+        className="metal-card flex h-[100dvh] w-full max-w-lg flex-col rounded-none sm:h-auto sm:max-h-[88vh] sm:rounded-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-[#242424] px-4 py-3 sm:px-6 sm:py-4">
+          <h3 className="silver-text min-w-0 truncate font-display text-base font-bold tracking-wider sm:text-lg">{title}</h3>
+          <button onClick={onClose} aria-label="Close" className="shrink-0 rounded-md p-1 text-muted-foreground hover:text-silver-bright">
+            <X className="h-5 w-5" />
+          </button>
         </div>
-        {children}
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:px-6">
+          {children}
+        </div>
         <MetalStyles />
       </div>
     </div>
