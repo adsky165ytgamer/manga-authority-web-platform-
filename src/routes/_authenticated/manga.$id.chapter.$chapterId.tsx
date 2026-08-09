@@ -160,7 +160,7 @@ function ChapterSelector({ mangaId, current, chapters, onClose }: {
             className="w-full bg-black/60 border border-border rounded-lg pl-9 pr-3 py-2 text-sm text-silver-bright placeholder:text-muted-foreground focus:border-silver/50 focus:outline-none"
           />
         </div>
-        <div className="overflow-y-auto p-2 space-y-1">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] space-y-1">
           {filtered.map((c) => {
             const active = c.id === current;
             return (
