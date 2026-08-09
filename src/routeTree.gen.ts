@@ -21,7 +21,7 @@ import { Route as AuthenticatedInternalRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedHomeRouteImport } from './routes/_authenticated/home'
 import { Route as AuthenticatedAccountRouteImport } from './routes/_authenticated/account'
 import { Route as AuthenticatedAboutRouteImport } from './routes/_authenticated/about'
-import { Route as AuthenticatedMangaIdRouteImport } from './routes/_authenticated/manga.$id'
+import { Route as AuthenticatedMangaIdIndexRouteImport } from './routes/_authenticated/manga.$id.index'
 import { Route as AuthenticatedMangaIdReadChapterIdRouteImport } from './routes/_authenticated/manga.$id.read.$chapterId'
 import { Route as AuthenticatedMangaIdChapterChapterIdRouteImport } from './routes/_authenticated/manga.$id.chapter.$chapterId'
 
@@ -84,22 +84,23 @@ const AuthenticatedAboutRoute = AuthenticatedAboutRouteImport.update({
   path: '/about',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedMangaIdRoute = AuthenticatedMangaIdRouteImport.update({
-  id: '/manga/$id',
-  path: '/manga/$id',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
+const AuthenticatedMangaIdIndexRoute =
+  AuthenticatedMangaIdIndexRouteImport.update({
+    id: '/manga/$id/',
+    path: '/manga/$id/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedMangaIdReadChapterIdRoute =
   AuthenticatedMangaIdReadChapterIdRouteImport.update({
-    id: '/read/$chapterId',
-    path: '/read/$chapterId',
-    getParentRoute: () => AuthenticatedMangaIdRoute,
+    id: '/manga/$id/read/$chapterId',
+    path: '/manga/$id/read/$chapterId',
+    getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedMangaIdChapterChapterIdRoute =
   AuthenticatedMangaIdChapterChapterIdRouteImport.update({
-    id: '/chapter/$chapterId',
-    path: '/chapter/$chapterId',
-    getParentRoute: () => AuthenticatedMangaIdRoute,
+    id: '/manga/$id/chapter/$chapterId',
+    path: '/manga/$id/chapter/$chapterId',
+    getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 
 export interface FileRoutesByFullPath {
@@ -114,7 +115,7 @@ export interface FileRoutesByFullPath {
   '/podcast': typeof AuthenticatedPodcastRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/upload': typeof AuthenticatedUploadRoute
-  '/manga/$id': typeof AuthenticatedMangaIdRouteWithChildren
+  '/manga/$id/': typeof AuthenticatedMangaIdIndexRoute
   '/manga/$id/chapter/$chapterId': typeof AuthenticatedMangaIdChapterChapterIdRoute
   '/manga/$id/read/$chapterId': typeof AuthenticatedMangaIdReadChapterIdRoute
 }
@@ -130,7 +131,7 @@ export interface FileRoutesByTo {
   '/podcast': typeof AuthenticatedPodcastRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/upload': typeof AuthenticatedUploadRoute
-  '/manga/$id': typeof AuthenticatedMangaIdRouteWithChildren
+  '/manga/$id': typeof AuthenticatedMangaIdIndexRoute
   '/manga/$id/chapter/$chapterId': typeof AuthenticatedMangaIdChapterChapterIdRoute
   '/manga/$id/read/$chapterId': typeof AuthenticatedMangaIdReadChapterIdRoute
 }
@@ -148,7 +149,7 @@ export interface FileRoutesById {
   '/_authenticated/podcast': typeof AuthenticatedPodcastRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/upload': typeof AuthenticatedUploadRoute
-  '/_authenticated/manga/$id': typeof AuthenticatedMangaIdRouteWithChildren
+  '/_authenticated/manga/$id/': typeof AuthenticatedMangaIdIndexRoute
   '/_authenticated/manga/$id/chapter/$chapterId': typeof AuthenticatedMangaIdChapterChapterIdRoute
   '/_authenticated/manga/$id/read/$chapterId': typeof AuthenticatedMangaIdReadChapterIdRoute
 }
@@ -166,7 +167,7 @@ export interface FileRouteTypes {
     | '/podcast'
     | '/profile'
     | '/upload'
-    | '/manga/$id'
+    | '/manga/$id/'
     | '/manga/$id/chapter/$chapterId'
     | '/manga/$id/read/$chapterId'
   fileRoutesByTo: FileRoutesByTo
@@ -199,7 +200,7 @@ export interface FileRouteTypes {
     | '/_authenticated/podcast'
     | '/_authenticated/profile'
     | '/_authenticated/upload'
-    | '/_authenticated/manga/$id'
+    | '/_authenticated/manga/$id/'
     | '/_authenticated/manga/$id/chapter/$chapterId'
     | '/_authenticated/manga/$id/read/$chapterId'
   fileRoutesById: FileRoutesById
@@ -296,44 +297,29 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAboutRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/manga/$id': {
-      id: '/_authenticated/manga/$id'
+    '/_authenticated/manga/$id/': {
+      id: '/_authenticated/manga/$id/'
       path: '/manga/$id'
-      fullPath: '/manga/$id'
-      preLoaderRoute: typeof AuthenticatedMangaIdRouteImport
+      fullPath: '/manga/$id/'
+      preLoaderRoute: typeof AuthenticatedMangaIdIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/manga/$id/read/$chapterId': {
       id: '/_authenticated/manga/$id/read/$chapterId'
-      path: '/read/$chapterId'
+      path: '/manga/$id/read/$chapterId'
       fullPath: '/manga/$id/read/$chapterId'
       preLoaderRoute: typeof AuthenticatedMangaIdReadChapterIdRouteImport
-      parentRoute: typeof AuthenticatedMangaIdRoute
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/manga/$id/chapter/$chapterId': {
       id: '/_authenticated/manga/$id/chapter/$chapterId'
-      path: '/chapter/$chapterId'
+      path: '/manga/$id/chapter/$chapterId'
       fullPath: '/manga/$id/chapter/$chapterId'
       preLoaderRoute: typeof AuthenticatedMangaIdChapterChapterIdRouteImport
-      parentRoute: typeof AuthenticatedMangaIdRoute
+      parentRoute: typeof AuthenticatedRouteRoute
     }
   }
 }
-
-interface AuthenticatedMangaIdRouteChildren {
-  AuthenticatedMangaIdChapterChapterIdRoute: typeof AuthenticatedMangaIdChapterChapterIdRoute
-  AuthenticatedMangaIdReadChapterIdRoute: typeof AuthenticatedMangaIdReadChapterIdRoute
-}
-
-const AuthenticatedMangaIdRouteChildren: AuthenticatedMangaIdRouteChildren = {
-  AuthenticatedMangaIdChapterChapterIdRoute:
-    AuthenticatedMangaIdChapterChapterIdRoute,
-  AuthenticatedMangaIdReadChapterIdRoute:
-    AuthenticatedMangaIdReadChapterIdRoute,
-}
-
-const AuthenticatedMangaIdRouteWithChildren =
-  AuthenticatedMangaIdRoute._addFileChildren(AuthenticatedMangaIdRouteChildren)
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAboutRoute: typeof AuthenticatedAboutRoute
@@ -345,7 +331,9 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedPodcastRoute: typeof AuthenticatedPodcastRoute
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
   AuthenticatedUploadRoute: typeof AuthenticatedUploadRoute
-  AuthenticatedMangaIdRoute: typeof AuthenticatedMangaIdRouteWithChildren
+  AuthenticatedMangaIdIndexRoute: typeof AuthenticatedMangaIdIndexRoute
+  AuthenticatedMangaIdChapterChapterIdRoute: typeof AuthenticatedMangaIdChapterChapterIdRoute
+  AuthenticatedMangaIdReadChapterIdRoute: typeof AuthenticatedMangaIdReadChapterIdRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -358,7 +346,11 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedPodcastRoute: AuthenticatedPodcastRoute,
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
   AuthenticatedUploadRoute: AuthenticatedUploadRoute,
-  AuthenticatedMangaIdRoute: AuthenticatedMangaIdRouteWithChildren,
+  AuthenticatedMangaIdIndexRoute: AuthenticatedMangaIdIndexRoute,
+  AuthenticatedMangaIdChapterChapterIdRoute:
+    AuthenticatedMangaIdChapterChapterIdRoute,
+  AuthenticatedMangaIdReadChapterIdRoute:
+    AuthenticatedMangaIdReadChapterIdRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =

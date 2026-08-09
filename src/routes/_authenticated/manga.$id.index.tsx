@@ -7,7 +7,7 @@ import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { BookOpen, Plus, ChevronRight, Loader2, ImagePlus, X, Search, Pencil, Trash2, MoreVertical, RefreshCw, BookText } from "lucide-react";
 
-export const Route = createFileRoute("/_authenticated/manga/$id")({
+export const Route = createFileRoute("/_authenticated/manga/$id/")({
   component: MangaDetail,
 });
 
