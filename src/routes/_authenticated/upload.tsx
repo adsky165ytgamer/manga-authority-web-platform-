@@ -1,5 +1,5 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { uploadFile } from "@/lib/storage";
 import { toast } from "sonner";
@@ -27,9 +27,11 @@ function UploadPage() {
   const [loading, setLoading] = useState(false);
 
   function onCoverChange(f: File | null) {
+    setPreview((previous) => { if (previous) URL.revokeObjectURL(previous); return f ? URL.createObjectURL(f) : null; });
     setCover(f);
-    setPreview(f ? URL.createObjectURL(f) : null);
   }
+
+  useEffect(() => () => { if (preview) URL.revokeObjectURL(preview); }, [preview]);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -37,20 +39,30 @@ function UploadPage() {
     if (!parsed.success) { toast.error(parsed.error.issues[0].message); return; }
     setLoading(true);
     try {
-      let coverPath: string | null = null;
-      if (cover) {
-        const ext = cover.name.split(".").pop() ?? "jpg";
-        coverPath = `${user.id}/covers/${Date.now()}.${ext}`;
-        await uploadFile(coverPath, cover);
-      }
       const { data, error } = await supabase.from("manga").insert({
         title: title.trim(),
         description: description.trim() || null,
         genre: genre.trim() || null,
-        cover_image: coverPath,
+        cover_image: null,
         created_by: user.id,
       }).select("id").single();
       if (error) throw error;
+
+      let coverPath: string | null = null;
+      try {
+        if (cover) {
+          const ext = cover.name.split(".").pop() ?? "jpg";
+          coverPath = `${user.id}/manga/${data.id}/cover.${ext}`;
+          await uploadFile(coverPath, cover);
+          const { error: coverUpdateError } = await supabase.from("manga").update({ cover_image: coverPath }).eq("id", data.id);
+          if (coverUpdateError) throw coverUpdateError;
+        }
+      } catch (coverError) {
+        if (coverPath) await supabase.storage.from("manga").remove([coverPath]);
+        await supabase.from("manga").delete().eq("id", data.id);
+        throw coverError;
+      }
+
       toast.success("Manga created");
       router.navigate({ to: "/manga/$id", params: { id: data.id } });
     } catch (err: any) {

@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { signPath, uploadFile } from "@/lib/storage";
 import { deleteMangaCompletely } from "@/lib/manga-admin";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { BookOpen, Plus, ChevronRight, Loader2, ImagePlus, X, Search, Pencil, Trash2, MoreVertical, RefreshCw, BookText } from "lucide-react";
 
@@ -36,9 +36,9 @@ async function loadManga(id: string) {
   return { manga: manga as any, chapters: chapters ?? [], coverUrl, author: authorProfile?.username ?? "unknown" };
 }
 
-async function checkAdmin(userId: string) {
-  const { data } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
-  return !!data;
+async function checkContentManager(userId: string) {
+  const { data } = await supabase.from("user_roles").select("role").eq("user_id", userId);
+  return (data ?? []).some((item) => ["admin", "uploader", "leader", "manager", "sub_manager"].includes(item.role));
 }
 
 function MangaDetail() {
@@ -53,14 +53,15 @@ function MangaDetail() {
   const [contentChapter, setContentChapter] = useState<{ id: string; chapter_number: number } | null>(null);
   const [deletingManga, setDeletingManga] = useState(false);
   const router = useRouter();
+  const deleteManga = useServerFn(deleteMangaCompletely);
 
   const { data, isLoading } = useQuery({
     queryKey: ["manga", id],
     queryFn: () => loadManga(id),
   });
-  const { data: isAdmin } = useQuery({
-    queryKey: ["is-admin", user.id],
-    queryFn: () => checkAdmin(user.id),
+  const { data: canManageContent } = useQuery({
+    queryKey: ["can-manage-content", user.id],
+    queryFn: () => checkContentManager(user.id),
   });
 
   const filteredChapters = useMemo(() => {
@@ -77,7 +78,7 @@ function MangaDetail() {
   if (!data) return <div className="text-center text-muted-foreground py-16">Manga not found</div>;
 
   const { manga, chapters, coverUrl, author } = data;
-  const canEdit = manga.created_by === user.id || !!isAdmin;
+  const canEdit = manga.created_by === user.id || !!canManageContent;
 
   function refresh() {
     qc.invalidateQueries({ queryKey: ["manga", id] });
@@ -114,7 +115,7 @@ function MangaDetail() {
                     if (!confirm(`Delete "${manga.title}" with every chapter, page and file? This cannot be undone.`)) return;
                     setDeletingManga(true);
                     try {
-                      await deleteMangaCompletely(manga.id);
+                      await deleteManga({ data: { mangaId: manga.id } });
                       toast.success("Manga deleted");
                       qc.invalidateQueries({ queryKey: ["manga-list"] });
                       router.navigate({ to: "/home" });
@@ -195,11 +196,18 @@ function MangaDetail() {
                 onContent={() => setContentChapter({ id: c.id, chapter_number: c.chapter_number })}
                 onReplace={() => setReplaceChapter({ id: c.id })}
                 onDelete={async () => {
-                  if (!confirm(`Delete Chapter ${c.chapter_number}? This removes all pages.`)) return;
+                  if (!confirm(`Delete Chapter ${c.chapter_number}? This removes every page, PDF and narration file.`)) return;
                   try {
-                    const { data: pgs } = await supabase.from("pages").select("image_url").eq("chapter_id", c.id);
-                    const paths = (pgs ?? []).map((p) => p.image_url);
-                    if (paths.length) await supabase.storage.from("manga").remove(paths);
+                    const { data: chapter, error: chapterReadError } = await supabase
+                      .from("chapters").select("pdf_url, audio_url").eq("id", c.id).maybeSingle();
+                    if (chapterReadError) throw chapterReadError;
+                    const { data: pgs, error: pageReadError } = await supabase.from("pages").select("image_url").eq("chapter_id", c.id);
+                    if (pageReadError) throw pageReadError;
+                    const paths = [chapter?.pdf_url, chapter?.audio_url, ...(pgs ?? []).map((p) => p.image_url)].filter(Boolean) as string[];
+                    if (paths.length) {
+                      const { error: storageError } = await supabase.storage.from("manga").remove(paths);
+                      if (storageError) throw storageError;
+                    }
                     const { error } = await supabase.from("chapters").delete().eq("id", c.id);
                     if (error) throw error;
                     toast.success("Chapter deleted");
@@ -234,7 +242,6 @@ function MangaDetail() {
             status: (manga.status ?? "ongoing") as Status,
             created_by: manga.created_by,
           }}
-          isAdmin={!!isAdmin}
           onClose={() => setEditOpen(false)}
           onDone={() => { refresh(); setEditOpen(false); }}
         />
@@ -320,9 +327,8 @@ function MenuItem({ icon: Icon, label, onClick, danger }: { icon: any; label: st
   );
 }
 
-function EditMangaModal({ manga, isAdmin, onClose, onDone }: {
+function EditMangaModal({ manga, onClose, onDone }: {
   manga: { id: string; title: string; description: string | null; genre: string | null; status: Status; created_by: string };
-  isAdmin: boolean;
   onClose: () => void;
   onDone: () => void;
 }) {
@@ -330,17 +336,7 @@ function EditMangaModal({ manga, isAdmin, onClose, onDone }: {
   const [description, setDescription] = useState(manga.description ?? "");
   const [genre, setGenre] = useState(manga.genre ?? "");
   const [status, setStatus] = useState<Status>(manga.status);
-  const [ownerQuery, setOwnerQuery] = useState("");
-  const [newOwnerId, setNewOwnerId] = useState<string | null>(null);
-  const [ownerResults, setOwnerResults] = useState<{ id: string; username: string }[]>([]);
   const [loading, setLoading] = useState(false);
-
-  async function searchOwners(q: string) {
-    setOwnerQuery(q);
-    if (q.trim().length < 2) { setOwnerResults([]); return; }
-    const { data } = await supabase.from("profiles").select("id, username").ilike("username", `%${q.trim()}%`).limit(6);
-    setOwnerResults(data ?? []);
-  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -353,7 +349,6 @@ function EditMangaModal({ manga, isAdmin, onClose, onDone }: {
         genre: genre.trim() || null,
         status,
       };
-      if (newOwnerId && newOwnerId !== manga.created_by) update.created_by = newOwnerId;
       const { error } = await supabase.from("manga").update(update).eq("id", manga.id);
       if (error) throw error;
       toast.success("Manga updated");
@@ -383,21 +378,6 @@ function EditMangaModal({ manga, isAdmin, onClose, onDone }: {
             ))}
           </div>
         </Field>
-        {isAdmin && (
-          <Field label="Transfer Ownership (optional)">
-            <input value={ownerQuery} onChange={(e) => { searchOwners(e.target.value); setNewOwnerId(null); }} className="input-metal" placeholder="Search username…" />
-            {ownerResults.length > 0 && !newOwnerId && (
-              <div className="mt-2 metal-card p-1 space-y-1">
-                {ownerResults.map((r) => (
-                  <button key={r.id} type="button" onClick={() => { setNewOwnerId(r.id); setOwnerQuery(r.username); setOwnerResults([]); }} className="w-full text-left px-3 py-1.5 rounded text-xs text-silver-bright hover:bg-white/5">
-                    @{r.username}
-                  </button>
-                ))}
-              </div>
-            )}
-            {newOwnerId && <div className="mt-1 text-[11px] text-silver/70">New owner: @{ownerQuery}</div>}
-          </Field>
-        )}
         <button type="submit" disabled={loading} className="btn-metal hover:btn-metal-hover w-full rounded-lg py-3 text-sm font-bold tracking-[0.2em] disabled:opacity-60">
           {loading ? <span className="inline-flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" /> Saving…</span> : "SAVE CHANGES"}
         </button>
@@ -459,23 +439,44 @@ function ReplacePagesModal({ chapterId, mangaId, userId, onClose, onDone }: {
     if (!confirm("This will delete all existing pages and replace them.")) return;
     setLoading(true);
     try {
-      const { data: existing } = await supabase.from("pages").select("image_url").eq("chapter_id", chapterId);
-      const oldPaths = (existing ?? []).map((p) => p.image_url);
-      if (oldPaths.length) await supabase.storage.from("manga").remove(oldPaths);
-      await supabase.from("pages").delete().eq("chapter_id", chapterId);
+      const { data: existing, error: existingError } = await supabase.from("pages").select("image_url, page_order").eq("chapter_id", chapterId).order("page_order");
+      if (existingError) throw existingError;
+      const oldPages = existing ?? [];
+      const newPaths: string[] = [];
+      const batch = `${Date.now()}-${crypto.randomUUID()}`;
 
+      // Upload first. The old chapter remains intact until every new file exists.
       for (let i = 0; i < files.length; i++) {
         const f = files[i];
         const ext = f.name.split(".").pop() ?? "jpg";
-        const path = `${userId}/manga/${mangaId}/chapters/${chapterId}/${Date.now()}-${String(i + 1).padStart(4, "0")}.${ext}`;
+        const path = `${userId}/manga/${mangaId}/chapters/${chapterId}/replacement-${batch}/${String(i + 1).padStart(4, "0")}.${ext}`;
         await uploadFile(path, f);
-        const { error } = await supabase.from("pages").insert({ chapter_id: chapterId, image_url: path, page_order: i + 1 });
-        if (error) throw error;
+        newPaths.push(path);
         setProgress(Math.round(((i + 1) / files.length) * 100));
+      }
+
+      const { error: deleteOldRowsError } = await supabase.from("pages").delete().eq("chapter_id", chapterId);
+      if (deleteOldRowsError) throw deleteOldRowsError;
+
+      const { error: insertError } = await supabase.from("pages").insert(
+        newPaths.map((path, i) => ({ chapter_id: chapterId, image_url: path, page_order: i + 1 }))
+      );
+      if (insertError) {
+        await supabase.from("pages").delete().eq("chapter_id", chapterId);
+        if (oldPages.length) await supabase.from("pages").insert(oldPages.map((page) => ({ chapter_id: chapterId, image_url: page.image_url, page_order: page.page_order })));
+        throw insertError;
+      }
+
+      const oldPaths = oldPages.map((p) => p.image_url);
+      if (oldPaths.length) {
+        const { error: storageError } = await supabase.storage.from("manga").remove(oldPaths);
+        if (storageError) throw storageError;
       }
       toast.success("Pages replaced");
       onDone();
-    } catch (err: any) { toast.error(err?.message ?? "Replace failed"); }
+    } catch (err: any) {
+      toast.error(err?.message ?? "Replace failed");
+    }
     finally { setLoading(false); }
   }
 
@@ -513,6 +514,8 @@ function AddChapterModal({ mangaId, userId, onClose, onDone, nextNumber }: {
   const [files, setFiles] = useState<File[]>([]);
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState(0);
+  const previewUrls = useMemo(() => files.map((file) => URL.createObjectURL(file)), [files]);
+  useEffect(() => () => { previewUrls.forEach((url) => URL.revokeObjectURL(url)); }, [previewUrls]);
 
   function onFiles(list: FileList | null) {
     if (!list) return;
@@ -526,6 +529,8 @@ function AddChapterModal({ mangaId, userId, onClose, onDone, nextNumber }: {
     if (!Number.isFinite(num) || num <= 0) { toast.error("Enter a valid chapter number"); return; }
     if (files.length === 0) { toast.error("Add at least one page"); return; }
     setLoading(true);
+    let chapterId: string | null = null;
+    const uploadedPaths: string[] = [];
     try {
       const { data: chap, error } = await supabase.from("chapters").insert({
         manga_id: mangaId,
@@ -533,12 +538,14 @@ function AddChapterModal({ mangaId, userId, onClose, onDone, nextNumber }: {
         chapter_title: title.trim() || null,
       }).select("id").single();
       if (error) throw error;
+      chapterId = chap.id;
 
       for (let i = 0; i < files.length; i++) {
         const f = files[i];
         const ext = f.name.split(".").pop() ?? "jpg";
         const path = `${userId}/manga/${mangaId}/chapters/${chap.id}/${String(i + 1).padStart(4, "0")}.${ext}`;
         await uploadFile(path, f);
+        uploadedPaths.push(path);
         const { error: pageErr } = await supabase.from("pages").insert({
           chapter_id: chap.id,
           image_url: path,
@@ -550,6 +557,8 @@ function AddChapterModal({ mangaId, userId, onClose, onDone, nextNumber }: {
       toast.success("Chapter uploaded");
       onDone();
     } catch (err: any) {
+      if (uploadedPaths.length) await supabase.storage.from("manga").remove(uploadedPaths);
+      if (chapterId) await supabase.from("chapters").delete().eq("id", chapterId);
       toast.error(err?.message ?? "Upload failed");
     } finally { setLoading(false); }
   }
@@ -575,7 +584,7 @@ function AddChapterModal({ mangaId, userId, onClose, onDone, nextNumber }: {
           <div className="grid grid-cols-4 gap-2 max-h-40 overflow-y-auto">
             {files.map((f, i) => (
               <div key={i} className="relative aspect-[3/4] rounded overflow-hidden metal-border">
-                <img src={URL.createObjectURL(f)} className="h-full w-full object-cover" alt={`page ${i + 1}`} />
+                <img src={previewUrls[i]} className="h-full w-full object-cover" alt={`page ${i + 1}`} />
                 <span className="absolute bottom-0 right-0 bg-black/70 px-1 text-[10px] font-bold text-silver-bright">{i + 1}</span>
               </div>
             ))}
@@ -632,13 +641,24 @@ function ChapterContentModal({ chapterId, chapterNumber, mangaId, userId, onClos
   const [text, setText] = useState("");
   const [pdf, setPdf] = useState<File | null>(null);
   const [audio, setAudio] = useState<File | null>(null);
+  const [existingPdf, setExistingPdf] = useState<string | null>(null);
+  const [existingAudio, setExistingAudio] = useState<string | null>(null);
+  const [removePdf, setRemovePdf] = useState(false);
+  const [removeAudio, setRemoveAudio] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const { isLoading } = useQuery({
     queryKey: ["chapter-content", chapterId],
     queryFn: async () => {
-      const { data } = await supabase.from("chapters").select("text_content").eq("id", chapterId).maybeSingle();
+      const { data, error } = await supabase
+        .from("chapters")
+        .select("text_content, pdf_url, audio_url")
+        .eq("id", chapterId)
+        .maybeSingle();
+      if (error) throw error;
       setText(data?.text_content ?? "");
+      setExistingPdf(data?.pdf_url ?? null);
+      setExistingAudio(data?.audio_url ?? null);
       return data ?? {};
     },
   });
@@ -646,25 +666,46 @@ function ChapterContentModal({ chapterId, chapterNumber, mangaId, userId, onClos
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
+    const uploaded: string[] = [];
     try {
-      const update: any = { text_content: text.trim() || null };
+      const update: { text_content: string | null; pdf_url?: string | null; audio_url?: string | null } = {
+        text_content: text.trim() || null,
+      };
+      if (removePdf && !pdf) update.pdf_url = null;
+      if (removeAudio && !audio) update.audio_url = null;
+
       if (pdf) {
-        const path = `${userId}/manga/${mangaId}/chapters/${chapterId}/original.pdf`;
+        const ext = pdf.name.split(".").pop() ?? "pdf";
+        const path = `${userId}/manga/${mangaId}/chapters/${chapterId}/original-${Date.now()}.${ext}`;
         await uploadFile(path, pdf);
+        uploaded.push(path);
         update.pdf_url = path;
       }
       if (audio) {
         const ext = audio.name.split(".").pop() ?? "mp3";
-        const path = `${userId}/manga/${mangaId}/chapters/${chapterId}/narration.${ext}`;
+        const path = `${userId}/manga/${mangaId}/chapters/${chapterId}/narration-${Date.now()}.${ext}`;
         await uploadFile(path, audio);
+        uploaded.push(path);
         update.audio_url = path;
       }
+
       const { error } = await supabase.from("chapters").update(update).eq("id", chapterId);
       if (error) throw error;
+
+      const oldPaths: string[] = [];
+      if (existingPdf && update.pdf_url !== undefined && update.pdf_url !== existingPdf) oldPaths.push(existingPdf);
+      if (existingAudio && update.audio_url !== undefined && update.audio_url !== existingAudio) oldPaths.push(existingAudio);
+      if (oldPaths.length) {
+        const { error: removeError } = await supabase.storage.from("manga").remove(oldPaths);
+        if (removeError) throw removeError;
+      }
+
       toast.success("Chapter content saved");
       onDone();
-    } catch (err: any) { toast.error(err?.message ?? "Save failed"); }
-    finally { setLoading(false); }
+    } catch (err: any) {
+      if (uploaded.length) await supabase.storage.from("manga").remove(uploaded);
+      toast.error(err?.message ?? "Save failed");
+    } finally { setLoading(false); }
   }
 
   return (
@@ -680,10 +721,14 @@ function ChapterContentModal({ chapterId, chapterNumber, mangaId, userId, onClos
           />
         </Field>
         <Field label="Original PDF" hint="Kept as the source file for this chapter">
-          <input type="file" accept="application/pdf" className="input-metal" onChange={(e) => setPdf(e.target.files?.[0] ?? null)} />
+          {existingPdf && !removePdf && <div className="mb-2 flex items-center justify-between rounded-lg border border-border bg-black/40 px-3 py-2 text-xs text-silver/70"><span>PDF already attached</span><button type="button" onClick={() => setRemovePdf(true)} className="text-destructive hover:underline">Remove</button></div>}
+          {removePdf && !pdf && <div className="mb-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-destructive">PDF will be removed when you save.</div>}
+          <input type="file" accept="application/pdf" className="input-metal" onChange={(e) => { setPdf(e.target.files?.[0] ?? null); setRemovePdf(false); }} />
         </Field>
         <Field label="Narration audio" hint="Appears in the Podcast section">
-          <input type="file" accept="audio/*" className="input-metal" onChange={(e) => setAudio(e.target.files?.[0] ?? null)} />
+          {existingAudio && !removeAudio && <div className="mb-2 flex items-center justify-between rounded-lg border border-border bg-black/40 px-3 py-2 text-xs text-silver/70"><span>Narration already attached</span><button type="button" onClick={() => setRemoveAudio(true)} className="text-destructive hover:underline">Remove</button></div>}
+          {removeAudio && !audio && <div className="mb-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-destructive">Narration will be removed when you save.</div>}
+          <input type="file" accept="audio/*" className="input-metal" onChange={(e) => { setAudio(e.target.files?.[0] ?? null); setRemoveAudio(false); }} />
         </Field>
         <button type="submit" disabled={loading} className="btn-metal hover:btn-metal-hover w-full rounded-lg py-3 text-sm font-bold tracking-[0.2em] disabled:opacity-60">
           {loading ? <span className="inline-flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" /> Saving…</span> : "SAVE CONTENT"}

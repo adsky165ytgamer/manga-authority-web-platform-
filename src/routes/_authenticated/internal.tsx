@@ -22,13 +22,17 @@ export const Route = createFileRoute("/_authenticated/internal")({
 
 type Tab = "review" | "rnd";
 
-async function loadBoard() {
+async function loadBoard(userId: string) {
+  const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", userId);
+  const canReview = (roles ?? []).some((item) => ["admin", "leader", "manager", "sub_manager", "reviewer"].includes(item.role));
+  if (!canReview) return { authorized: false, entries: [], manga: [] };
+
   const { data } = await supabase
     .from("reviews")
     .select("id, manga_id, chapter_id, issue, location, issue_type, description, status, created_by, created_at")
     .order("created_at", { ascending: false });
   const { data: manga } = await supabase.from("manga").select("id, title").order("title");
-  return { entries: data ?? [], manga: manga ?? [] };
+  return { authorized: true, entries: data ?? [], manga: manga ?? [] };
 }
 
 function InternalPage() {
@@ -36,7 +40,16 @@ function InternalPage() {
   const qc = useQueryClient();
   const [tab, setTab] = useState<Tab>("review");
   const [addOpen, setAddOpen] = useState(false);
-  const { data, isLoading } = useQuery({ queryKey: ["internal-board"], queryFn: loadBoard });
+  const { data, isLoading } = useQuery({ queryKey: ["internal-board", user.id], queryFn: () => loadBoard(user.id) });
+
+  if (data && !data.authorized) {
+    return (
+      <div className="animate-fade-in">
+        <PageTitle title="REVIEW & R&D" subtitle="Internal quality control and the idea laboratory." />
+        <div className="metal-card p-10 text-center text-sm text-muted-foreground">This section is restricted to authorized Authority staff.</div>
+      </div>
+    );
+  }
 
   const entries = (data?.entries ?? []).filter((e) => (tab === "rnd" ? e.issue_type === "idea" : e.issue_type !== "idea"));
   const mangaTitles = new Map((data?.manga ?? []).map((m) => [m.id, m.title]));

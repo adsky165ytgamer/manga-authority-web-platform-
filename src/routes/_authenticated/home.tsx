@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { signPaths } from "@/lib/storage";
@@ -57,8 +58,9 @@ async function loadManga(): Promise<MangaCard[]> {
 
 function HomePage() {
   const { data, isLoading, refetch } = useQuery({ queryKey: ["manga-list"], queryFn: loadManga });
+  const deleteManga = useServerFn(deleteMangaCompletely);
   const [q, setQ] = useState("");
-  const [me, setMe] = useState<{ id: string; isAdmin: boolean } | null>(null);
+  const [me, setMe] = useState<{ id: string; isAdmin: boolean; canManageContent: boolean } | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -66,7 +68,12 @@ function HomePage() {
       const { data: auth } = await supabase.auth.getUser();
       if (!auth.user) return;
       const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", auth.user.id);
-      setMe({ id: auth.user.id, isAdmin: !!roles?.some((r) => r.role === "admin") });
+      const roleSet = new Set((roles ?? []).map((r) => r.role));
+      setMe({
+        id: auth.user.id,
+        isAdmin: roleSet.has("admin"),
+        canManageContent: ["admin", "uploader", "leader", "manager", "sub_manager"].some((role) => roleSet.has(role)),
+      });
     })();
   }, []);
 
@@ -76,7 +83,7 @@ function HomePage() {
     if (!confirm(`Delete "${title}" with every chapter, page and file? This cannot be undone.`)) return;
     setDeletingId(id);
     try {
-      await deleteMangaCompletely(id);
+      await deleteManga({ data: { mangaId: id } });
       toast.success("Manga deleted");
       await refetch();
     } catch (err: any) {
@@ -143,7 +150,7 @@ function HomePage() {
                   <BookOpen className="h-12 w-12" />
                 </div>
               )}
-              {me && (me.isAdmin || me.id === m.created_by) && (
+              {me && (me.canManageContent || me.id === m.created_by) && (
                 <button
                   onClick={(e) => removeManga(e, m.id, m.title)}
                   disabled={deletingId === m.id}
