@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { signPaths, uploadFile } from "@/lib/storage";
@@ -35,8 +35,16 @@ function MusicPage() {
   const { user } = Route.useRouteContext() as { user: { id: string } };
   const qc = useQueryClient();
   const [q, setQ] = useState("");
+  const [canManageMusic, setCanManageMusic] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const { data, isLoading } = useQuery({ queryKey: ["music"], queryFn: loadMusic });
+
+  useEffect(() => {
+    void (async () => {
+      const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", user.id);
+      setCanManageMusic((roles ?? []).some((r) => ["admin", "leader", "manager", "sub_manager", "music_producer"].includes(r.role)));
+    })();
+  }, [user.id]);
 
   const tracks = (data ?? []).filter((t) => {
     const s = q.trim().toLowerCase();
@@ -47,7 +55,8 @@ function MusicPage() {
   async function remove(id: string, path: string) {
     if (!confirm("Delete this track?")) return;
     try {
-      await supabase.storage.from("manga").remove([path]);
+      const { error: storageError } = await supabase.storage.from("manga").remove([path]);
+      if (storageError) throw storageError;
       const { error } = await supabase.from("music").delete().eq("id", id);
       if (error) throw error;
       toast.success("Track deleted");
@@ -59,9 +68,11 @@ function MusicPage() {
     <div className="animate-fade-in">
       <div className="mb-6 flex items-end justify-between gap-3">
         <PageTitle title="MUSIC" subtitle="Original scores and themes — separate from narration." />
-        <button onClick={() => setAddOpen(true)} className="btn-metal hover:btn-metal-hover mb-6 inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-bold uppercase tracking-widest">
-          <Plus className="h-4 w-4" /> Add
-        </button>
+        {canManageMusic && (
+          <button onClick={() => setAddOpen(true)} className="btn-metal hover:btn-metal-hover mb-6 inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-bold uppercase tracking-widest">
+            <Plus className="h-4 w-4" /> Add
+          </button>
+        )}
       </div>
 
       <div className="relative mb-5">
@@ -129,7 +140,10 @@ function AddTrackModal({ userId, onClose, onDone }: { userId: string; onClose: (
         audio_url: path,
         created_by: userId,
       });
-      if (error) throw error;
+      if (error) {
+        await supabase.storage.from("manga").remove([path]);
+        throw error;
+      }
       toast.success("Track added");
       onDone();
     } catch (err: any) { toast.error(err?.message ?? "Upload failed"); }

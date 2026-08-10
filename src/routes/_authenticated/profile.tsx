@@ -31,7 +31,11 @@ function ProfilePage() {
     queryFn: () => loadProfile(user.id, user.email),
   });
 
-  const role = data?.roles.includes("admin") ? "Admin" : data?.roles.includes("uploader") ? "Uploader" : "Member";
+  const roleLabels: Record<string, string> = {
+    admin: "Administrator", leader: "Leader / Author", manager: "Manager", sub_manager: "Sub-Manager",
+    writer: "Writer", reviewer: "Reviewer", music_producer: "Music Producer", uploader: "Uploader", reader: "Member",
+  };
+  const role = data?.roles.map((r) => roleLabels[r] ?? r).join(" · ") || "Member";
 
   return (
     <div className="max-w-3xl mx-auto">

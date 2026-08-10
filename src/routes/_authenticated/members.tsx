@@ -19,11 +19,13 @@ export const Route = createFileRoute("/_authenticated/members")({
 });
 
 async function loadMembers() {
-  const { data: profiles } = await supabase
-    .from("profiles")
-    .select("id, username, bio, role_title, contribution, created_at")
-    .order("created_at", { ascending: true });
-  return profiles ?? [];
+  const [{ data: profiles }, { data: roles }] = await Promise.all([
+    supabase.from("profiles").select("id, username, bio, role_title, contribution, created_at").order("created_at", { ascending: true }),
+    supabase.from("user_roles").select("user_id, role"),
+  ]);
+  const roleMap = new Map<string, string[]>();
+  for (const role of roles ?? []) roleMap.set(role.user_id, [...(roleMap.get(role.user_id) ?? []), role.role]);
+  return (profiles ?? []).map((profile) => ({ ...profile, roles: roleMap.get(profile.id) ?? [] }));
 }
 
 function MembersPage() {
@@ -35,11 +37,11 @@ function MembersPage() {
     <div className="animate-fade-in">
       <PageTitle title="MEMBERS" subtitle="Every member of the Authority and what they hold." />
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {(data ?? []).map((m, i) => (
+        {(data ?? []).map((m) => (
           <article key={m.id} className="metal-card p-5">
             <div className="flex items-center gap-3">
               <div className="flex h-11 w-11 items-center justify-center rounded-full metal-border bg-black/60 text-silver">
-                {i === 0 ? <Crown className="h-5 w-5" /> : <User className="h-5 w-5" />}
+                {m.roles.includes("leader") || m.roles.includes("admin") ? <Crown className="h-5 w-5" /> : <User className="h-5 w-5" />}
               </div>
               <div className="min-w-0">
                 <h2 className="truncate silver-text font-display text-lg font-bold tracking-wider">@{m.username}</h2>

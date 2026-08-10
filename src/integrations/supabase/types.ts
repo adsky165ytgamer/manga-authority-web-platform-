@@ -154,24 +154,30 @@ export type Database = {
       ownership_transfers: {
         Row: {
           created_at: string
-          from_user: string
+          from_user: string | null
+          from_username: string | null
           id: string
           manga_id: string
-          to_user: string
+          to_user: string | null
+          to_username: string | null
         }
         Insert: {
           created_at?: string
-          from_user: string
+          from_user?: string | null
+          from_username?: string | null
           id?: string
           manga_id: string
-          to_user: string
+          to_user?: string | null
+          to_username?: string | null
         }
         Update: {
           created_at?: string
-          from_user?: string
+          from_user?: string | null
+          from_username?: string | null
           id?: string
           manga_id?: string
-          to_user?: string
+          to_user?: string | null
+          to_username?: string | null
         }
         Relationships: [
           {
@@ -325,10 +331,29 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_manage_any_content: { Args: never; Returns: boolean }
+      can_manage_content: { Args: never; Returns: boolean }
+      can_manage_music: { Args: never; Returns: boolean }
+      can_review_internal: { Args: never; Returns: boolean }
+      current_user_has_role: {
+        Args: { _role: Database["public"]["Enums"]["app_role"] }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
+        }
+        Returns: boolean
+      }
+      transfer_manga_ownership: {
+        Args: {
+          p_actor_user: string
+          p_from_user: string
+          p_manga_id: string
+          p_new_prefix: string
+          p_old_prefix: string
+          p_to_user: string
         }
         Returns: boolean
       }

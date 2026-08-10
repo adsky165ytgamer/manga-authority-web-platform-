@@ -37,10 +37,10 @@ function AccountPage() {
   const qc = useQueryClient();
   const router = useRouter();
   const deleteAccount = useServerFn(deleteMyAccount);
+  const deleteManga = useServerFn(deleteMangaCompletely);
 
   const { data, isLoading } = useQuery({ queryKey: ["account", user.id], queryFn: () => loadAccount(user.id) });
   const [bio, setBio] = useState<string | null>(null);
-  const [roleTitle, setRoleTitle] = useState<string | null>(null);
   const [contribution, setContribution] = useState<string | null>(null);
   const [savingProfile, setSavingProfile] = useState(false);
   const [transfer, setTransfer] = useState<{ id: string; title: string } | null>(null);
@@ -51,7 +51,6 @@ function AccountPage() {
 
   const profile = data.profile;
   const bioVal = bio ?? profile?.bio ?? "";
-  const roleVal = roleTitle ?? profile?.role_title ?? "";
   const contribVal = contribution ?? profile?.contribution ?? "";
 
   async function saveProfile(e: React.FormEvent) {
@@ -60,7 +59,6 @@ function AccountPage() {
     try {
       const { error } = await supabase.from("profiles").update({
         bio: bioVal.trim() || null,
-        role_title: roleVal.trim() || null,
         contribution: contribVal.trim() || null,
       }).eq("id", user.id);
       if (error) throw error;
@@ -75,7 +73,7 @@ function AccountPage() {
   async function removeManga(id: string, title: string) {
     if (!confirm(`Delete "${title}" and every chapter, page and file inside it? This cannot be undone.`)) return;
     try {
-      await deleteMangaCompletely(id);
+      await deleteManga({ data: { mangaId: id } });
       toast.success("Manga deleted");
       qc.invalidateQueries({ queryKey: ["account", user.id] });
       qc.invalidateQueries({ queryKey: ["manga-list"] });
@@ -103,8 +101,8 @@ function AccountPage() {
 
       <form onSubmit={saveProfile} className="metal-card p-5 sm:p-6 space-y-4">
         <h2 className="silver-text font-display text-lg font-bold tracking-wider">MEMBER PROFILE</h2>
-        <Field label="Role title" hint="e.g. Leader & Author, Manager, Writer, Reviewer, Music Producer">
-          <input value={roleVal} onChange={(e) => setRoleTitle(e.target.value)} className="input-metal" placeholder="Writer" />
+        <Field label="Official role" hint="Assigned by Authority management; this is not user-editable">
+          <div className="input-metal text-silver-bright">{profile?.role_title ?? "Member"}</div>
         </Field>
         <Field label="Biography">
           <textarea value={bioVal} onChange={(e) => setBio(e.target.value)} rows={4} className="input-metal resize-none" placeholder="Who you are inside the Authority…" />
@@ -198,6 +196,7 @@ function TransferModal({ manga, fromUser, onClose, onDone }: {
   onClose: () => void;
   onDone: () => void;
 }) {
+  const transferOwnership = useServerFn(transferMangaOwnership);
   const [q, setQ] = useState("");
   const [results, setResults] = useState<{ id: string; username: string }[]>([]);
   const [target, setTarget] = useState<{ id: string; username: string } | null>(null);
@@ -215,7 +214,7 @@ function TransferModal({ manga, fromUser, onClose, onDone }: {
     if (!target) { toast.error("Pick a member"); return; }
     setLoading(true);
     try {
-      await transferMangaOwnership(manga.id, fromUser, target.id);
+      await transferOwnership({ data: { mangaId: manga.id, toUser: target.id } });
       toast.success(`Ownership transferred to @${target.username}`);
       onDone();
     } catch (err: any) {
