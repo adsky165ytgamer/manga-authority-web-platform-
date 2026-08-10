@@ -72,7 +72,7 @@ function HomePage() {
       setMe({
         id: auth.user.id,
         isAdmin: roleSet.has("admin"),
-        canManageContent: ["admin", "uploader", "leader", "manager", "sub_manager"].some((role) => roleSet.has(role)),
+        canManageContent: (["admin", "uploader", "leader", "manager", "sub_manager"] as const).some((role) => roleSet.has(role)),
       });
     })();
   }, []);
