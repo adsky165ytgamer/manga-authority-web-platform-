@@ -1,0 +1,1 @@
+<resources><style name="SenderTheme" parent="android:style/Theme.Material.NoActionBar"><item name="android:colorAccent">#00AFA3</item><item name="android:navigationBarColor">#06131C</item><item name="android:statusBarColor">#06131C</item></style></resources>
