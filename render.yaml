@@ -1,0 +1,50 @@
+services:
+  - type: web
+    name: noticeflow-backend
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: .
+    plan: starter
+    healthCheckPath: /health/live
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: BACKEND_HOST
+        value: 0.0.0.0
+      - key: BACKEND_PORT
+        value: 8787
+      - key: DATABASE_URL
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_PUBLISHABLE_KEY
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: SCHOOL_JWT_SECRET
+        generateValue: true
+      - key: DEVICE_ENROLLMENT_SECRET
+        generateValue: true
+      - key: BACKEND_CORS_ORIGIN
+        sync: false
+      - key: ACCESS_TOKEN_TTL_SECONDS
+        value: 900
+      - key: REFRESH_TOKEN_TTL_SECONDS
+        value: 2592000
+      - key: HEARTBEAT_RECENT_SECONDS
+        value: 300
+      - key: HEARTBEAT_ONLINE_SECONDS
+        value: 90
+
+  - type: web
+    name: noticeflow-frontend
+    runtime: docker
+    dockerfilePath: ./Dockerfile.web
+    dockerContext: .
+    plan: starter
+    healthCheckPath: /
+    autoDeploy: true
+    envVars:
+      - key: VITE_SCHOOL_API_URL
+        sync: false
