@@ -14,7 +14,8 @@
     "backend:build": "tsc -p backend/tsconfig.json",
     "backend:start": "node backend/dist/server.js",
     "backend:test": "tsx --test backend/tests/**/*.test.ts",
-    "backend:check": "tsc --noEmit -p backend/tsconfig.json"
+    "backend:check": "tsc --noEmit -p backend/tsconfig.json",
+    "build:platform": "tsc -p backend/tsconfig.json && vite build"
   },
   "dependencies": {
     "@fastify/cors": "^11.3.0",

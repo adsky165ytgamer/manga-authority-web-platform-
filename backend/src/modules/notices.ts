@@ -386,3 +386,32 @@ export async function retractNotice(principal: UserPrincipal, noticeId: string) 
     });
   return { noticeId, retracted: true, revision: Number(result.notice.revision) };
 }
+
+export async function listNotices(
+  organizationId: string,
+  input: { limit: number; before?: string },
+) {
+  const db = requirePool();
+  const result = await db.query(
+    `select n.*, count(distinct r.device_id)::int as recipient_count, count(distinct a.device_id)::int as acknowledged_count
+     from public.school_notices n
+     left join public.school_notice_recipients r on r.notice_id=n.id
+     left join public.school_notice_acknowledgements a on a.notice_id=n.id
+     where n.organization_id=$1 and ($2::timestamptz is null or n.created_at < $2)
+     group by n.id
+     order by n.created_at desc
+     limit $3`,
+    [organizationId, input.before ?? null, Math.min(Math.max(input.limit, 1), 100) + 1],
+  );
+  const hasMore = result.rows.length > input.limit;
+  const rows = hasMore ? result.rows.slice(0, input.limit) : result.rows;
+  return {
+    notices: rows.map((row) => ({
+      ...serializeNotice(row),
+      recipientCount: Number(row.recipient_count),
+      acknowledgedCount: Number(row.acknowledged_count),
+    })),
+    hasMore,
+    nextBefore: hasMore ? (rows[rows.length - 1]?.created_at ?? null) : null,
+  };
+}

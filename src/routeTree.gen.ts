@@ -9,70 +9,45 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as AuthRouteImport } from './routes/auth'
-import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as AuthenticatedUploadRouteImport } from './routes/_authenticated/upload'
-import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
-import { Route as AuthenticatedPodcastRouteImport } from './routes/_authenticated/podcast'
-import { Route as AuthenticatedMusicRouteImport } from './routes/_authenticated/music'
-import { Route as AuthenticatedMembersRouteImport } from './routes/_authenticated/members'
-import { Route as AuthenticatedInternalRouteImport } from './routes/_authenticated/internal'
-import { Route as AuthenticatedHomeRouteImport } from './routes/_authenticated/home'
-import { Route as AuthenticatedAccountRouteImport } from './routes/_authenticated/account'
+import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
+import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedAboutRouteImport } from './routes/_authenticated/about'
+import { Route as AuthenticatedAccountRouteImport } from './routes/_authenticated/account'
+import { Route as AuthenticatedDevicesRouteImport } from './routes/_authenticated/devices'
+import { Route as AuthenticatedDiagnosticsRouteImport } from './routes/_authenticated/diagnostics'
+import { Route as AuthenticatedHomeRouteImport } from './routes/_authenticated/home'
+import { Route as AuthenticatedInternalRouteImport } from './routes/_authenticated/internal'
+import { Route as AuthenticatedMembersRouteImport } from './routes/_authenticated/members'
+import { Route as AuthenticatedMusicRouteImport } from './routes/_authenticated/music'
+import { Route as AuthenticatedNoticesRouteImport } from './routes/_authenticated/notices'
+import { Route as AuthenticatedOperationsRouteImport } from './routes/_authenticated/operations'
+import { Route as AuthenticatedPodcastRouteImport } from './routes/_authenticated/podcast'
+import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
+import { Route as AuthenticatedReceiverRouteImport } from './routes/_authenticated/receiver'
+import { Route as AuthenticatedUploadRouteImport } from './routes/_authenticated/upload'
 import { Route as AuthenticatedMangaIdRouteImport } from './routes/_authenticated/manga.$id'
 import { Route as AuthenticatedMangaIdIndexRouteImport } from './routes/_authenticated/manga.$id.index'
-import { Route as AuthenticatedMangaIdReadChapterIdRouteImport } from './routes/_authenticated/manga.$id.read.$chapterId'
 import { Route as AuthenticatedMangaIdChapterChapterIdRouteImport } from './routes/_authenticated/manga.$id.chapter.$chapterId'
+import { Route as AuthenticatedMangaIdReadChapterIdRouteImport } from './routes/_authenticated/manga.$id.read.$chapterId'
 
-const AuthRoute = AuthRouteImport.update({
-  id: '/auth',
-  path: '/auth',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedUploadRoute = AuthenticatedUploadRouteImport.update({
-  id: '/upload',
-  path: '/upload',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedProfileRoute = AuthenticatedProfileRouteImport.update({
-  id: '/profile',
-  path: '/profile',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedPodcastRoute = AuthenticatedPodcastRouteImport.update({
-  id: '/podcast',
-  path: '/podcast',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedMusicRoute = AuthenticatedMusicRouteImport.update({
-  id: '/music',
-  path: '/music',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedMembersRoute = AuthenticatedMembersRouteImport.update({
-  id: '/members',
-  path: '/members',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedInternalRoute = AuthenticatedInternalRouteImport.update({
-  id: '/internal',
-  path: '/internal',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedHomeRoute = AuthenticatedHomeRouteImport.update({
-  id: '/home',
-  path: '/home',
+const AuthenticatedAboutRoute = AuthenticatedAboutRouteImport.update({
+  id: '/about',
+  path: '/about',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedAccountRoute = AuthenticatedAccountRouteImport.update({
@@ -80,9 +55,65 @@ const AuthenticatedAccountRoute = AuthenticatedAccountRouteImport.update({
   path: '/account',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedAboutRoute = AuthenticatedAboutRouteImport.update({
-  id: '/about',
-  path: '/about',
+const AuthenticatedDevicesRoute = AuthenticatedDevicesRouteImport.update({
+  id: '/devices',
+  path: '/devices',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedDiagnosticsRoute =
+  AuthenticatedDiagnosticsRouteImport.update({
+    id: '/diagnostics',
+    path: '/diagnostics',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedHomeRoute = AuthenticatedHomeRouteImport.update({
+  id: '/home',
+  path: '/home',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedInternalRoute = AuthenticatedInternalRouteImport.update({
+  id: '/internal',
+  path: '/internal',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedMembersRoute = AuthenticatedMembersRouteImport.update({
+  id: '/members',
+  path: '/members',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedMusicRoute = AuthenticatedMusicRouteImport.update({
+  id: '/music',
+  path: '/music',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedNoticesRoute = AuthenticatedNoticesRouteImport.update({
+  id: '/notices',
+  path: '/notices',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedOperationsRoute = AuthenticatedOperationsRouteImport.update({
+  id: '/operations',
+  path: '/operations',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedPodcastRoute = AuthenticatedPodcastRouteImport.update({
+  id: '/podcast',
+  path: '/podcast',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedProfileRoute = AuthenticatedProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedReceiverRoute = AuthenticatedReceiverRouteImport.update({
+  id: '/receiver',
+  path: '/receiver',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedUploadRoute = AuthenticatedUploadRouteImport.update({
+  id: '/upload',
+  path: '/upload',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedMangaIdRoute = AuthenticatedMangaIdRouteImport.update({
@@ -96,16 +127,16 @@ const AuthenticatedMangaIdIndexRoute =
     path: '/',
     getParentRoute: () => AuthenticatedMangaIdRoute,
   } as any)
-const AuthenticatedMangaIdReadChapterIdRoute =
-  AuthenticatedMangaIdReadChapterIdRouteImport.update({
-    id: '/read/$chapterId',
-    path: '/read/$chapterId',
-    getParentRoute: () => AuthenticatedMangaIdRoute,
-  } as any)
 const AuthenticatedMangaIdChapterChapterIdRoute =
   AuthenticatedMangaIdChapterChapterIdRouteImport.update({
     id: '/chapter/$chapterId',
     path: '/chapter/$chapterId',
+    getParentRoute: () => AuthenticatedMangaIdRoute,
+  } as any)
+const AuthenticatedMangaIdReadChapterIdRoute =
+  AuthenticatedMangaIdReadChapterIdRouteImport.update({
+    id: '/read/$chapterId',
+    path: '/read/$chapterId',
     getParentRoute: () => AuthenticatedMangaIdRoute,
   } as any)
 
@@ -114,12 +145,17 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/about': typeof AuthenticatedAboutRoute
   '/account': typeof AuthenticatedAccountRoute
+  '/devices': typeof AuthenticatedDevicesRoute
+  '/diagnostics': typeof AuthenticatedDiagnosticsRoute
   '/home': typeof AuthenticatedHomeRoute
   '/internal': typeof AuthenticatedInternalRoute
   '/members': typeof AuthenticatedMembersRoute
   '/music': typeof AuthenticatedMusicRoute
+  '/notices': typeof AuthenticatedNoticesRoute
+  '/operations': typeof AuthenticatedOperationsRoute
   '/podcast': typeof AuthenticatedPodcastRoute
   '/profile': typeof AuthenticatedProfileRoute
+  '/receiver': typeof AuthenticatedReceiverRoute
   '/upload': typeof AuthenticatedUploadRoute
   '/manga/$id': typeof AuthenticatedMangaIdRouteWithChildren
   '/manga/$id/': typeof AuthenticatedMangaIdIndexRoute
@@ -131,12 +167,17 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/about': typeof AuthenticatedAboutRoute
   '/account': typeof AuthenticatedAccountRoute
+  '/devices': typeof AuthenticatedDevicesRoute
+  '/diagnostics': typeof AuthenticatedDiagnosticsRoute
   '/home': typeof AuthenticatedHomeRoute
   '/internal': typeof AuthenticatedInternalRoute
   '/members': typeof AuthenticatedMembersRoute
   '/music': typeof AuthenticatedMusicRoute
+  '/notices': typeof AuthenticatedNoticesRoute
+  '/operations': typeof AuthenticatedOperationsRoute
   '/podcast': typeof AuthenticatedPodcastRoute
   '/profile': typeof AuthenticatedProfileRoute
+  '/receiver': typeof AuthenticatedReceiverRoute
   '/upload': typeof AuthenticatedUploadRoute
   '/manga/$id': typeof AuthenticatedMangaIdIndexRoute
   '/manga/$id/chapter/$chapterId': typeof AuthenticatedMangaIdChapterChapterIdRoute
@@ -149,12 +190,17 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/_authenticated/about': typeof AuthenticatedAboutRoute
   '/_authenticated/account': typeof AuthenticatedAccountRoute
+  '/_authenticated/devices': typeof AuthenticatedDevicesRoute
+  '/_authenticated/diagnostics': typeof AuthenticatedDiagnosticsRoute
   '/_authenticated/home': typeof AuthenticatedHomeRoute
   '/_authenticated/internal': typeof AuthenticatedInternalRoute
   '/_authenticated/members': typeof AuthenticatedMembersRoute
   '/_authenticated/music': typeof AuthenticatedMusicRoute
+  '/_authenticated/notices': typeof AuthenticatedNoticesRoute
+  '/_authenticated/operations': typeof AuthenticatedOperationsRoute
   '/_authenticated/podcast': typeof AuthenticatedPodcastRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
+  '/_authenticated/receiver': typeof AuthenticatedReceiverRoute
   '/_authenticated/upload': typeof AuthenticatedUploadRoute
   '/_authenticated/manga/$id': typeof AuthenticatedMangaIdRouteWithChildren
   '/_authenticated/manga/$id/': typeof AuthenticatedMangaIdIndexRoute
@@ -168,12 +214,17 @@ export interface FileRouteTypes {
     | '/auth'
     | '/about'
     | '/account'
+    | '/devices'
+    | '/diagnostics'
     | '/home'
     | '/internal'
     | '/members'
     | '/music'
+    | '/notices'
+    | '/operations'
     | '/podcast'
     | '/profile'
+    | '/receiver'
     | '/upload'
     | '/manga/$id'
     | '/manga/$id/'
@@ -185,12 +236,17 @@ export interface FileRouteTypes {
     | '/auth'
     | '/about'
     | '/account'
+    | '/devices'
+    | '/diagnostics'
     | '/home'
     | '/internal'
     | '/members'
     | '/music'
+    | '/notices'
+    | '/operations'
     | '/podcast'
     | '/profile'
+    | '/receiver'
     | '/upload'
     | '/manga/$id'
     | '/manga/$id/chapter/$chapterId'
@@ -202,12 +258,17 @@ export interface FileRouteTypes {
     | '/auth'
     | '/_authenticated/about'
     | '/_authenticated/account'
+    | '/_authenticated/devices'
+    | '/_authenticated/diagnostics'
     | '/_authenticated/home'
     | '/_authenticated/internal'
     | '/_authenticated/members'
     | '/_authenticated/music'
+    | '/_authenticated/notices'
+    | '/_authenticated/operations'
     | '/_authenticated/podcast'
     | '/_authenticated/profile'
+    | '/_authenticated/receiver'
     | '/_authenticated/upload'
     | '/_authenticated/manga/$id'
     | '/_authenticated/manga/$id/'
@@ -223,11 +284,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/auth': {
-      id: '/auth'
-      path: '/auth'
-      fullPath: '/auth'
-      preLoaderRoute: typeof AuthRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated': {
@@ -237,60 +298,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/upload': {
-      id: '/_authenticated/upload'
-      path: '/upload'
-      fullPath: '/upload'
-      preLoaderRoute: typeof AuthenticatedUploadRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/profile': {
-      id: '/_authenticated/profile'
-      path: '/profile'
-      fullPath: '/profile'
-      preLoaderRoute: typeof AuthenticatedProfileRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/podcast': {
-      id: '/_authenticated/podcast'
-      path: '/podcast'
-      fullPath: '/podcast'
-      preLoaderRoute: typeof AuthenticatedPodcastRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/music': {
-      id: '/_authenticated/music'
-      path: '/music'
-      fullPath: '/music'
-      preLoaderRoute: typeof AuthenticatedMusicRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/members': {
-      id: '/_authenticated/members'
-      path: '/members'
-      fullPath: '/members'
-      preLoaderRoute: typeof AuthenticatedMembersRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/internal': {
-      id: '/_authenticated/internal'
-      path: '/internal'
-      fullPath: '/internal'
-      preLoaderRoute: typeof AuthenticatedInternalRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/home': {
-      id: '/_authenticated/home'
-      path: '/home'
-      fullPath: '/home'
-      preLoaderRoute: typeof AuthenticatedHomeRouteImport
+    '/_authenticated/about': {
+      id: '/_authenticated/about'
+      path: '/about'
+      fullPath: '/about'
+      preLoaderRoute: typeof AuthenticatedAboutRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/account': {
@@ -300,11 +319,88 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAccountRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/about': {
-      id: '/_authenticated/about'
-      path: '/about'
-      fullPath: '/about'
-      preLoaderRoute: typeof AuthenticatedAboutRouteImport
+    '/_authenticated/devices': {
+      id: '/_authenticated/devices'
+      path: '/devices'
+      fullPath: '/devices'
+      preLoaderRoute: typeof AuthenticatedDevicesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/diagnostics': {
+      id: '/_authenticated/diagnostics'
+      path: '/diagnostics'
+      fullPath: '/diagnostics'
+      preLoaderRoute: typeof AuthenticatedDiagnosticsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/home': {
+      id: '/_authenticated/home'
+      path: '/home'
+      fullPath: '/home'
+      preLoaderRoute: typeof AuthenticatedHomeRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/internal': {
+      id: '/_authenticated/internal'
+      path: '/internal'
+      fullPath: '/internal'
+      preLoaderRoute: typeof AuthenticatedInternalRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/members': {
+      id: '/_authenticated/members'
+      path: '/members'
+      fullPath: '/members'
+      preLoaderRoute: typeof AuthenticatedMembersRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/music': {
+      id: '/_authenticated/music'
+      path: '/music'
+      fullPath: '/music'
+      preLoaderRoute: typeof AuthenticatedMusicRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/notices': {
+      id: '/_authenticated/notices'
+      path: '/notices'
+      fullPath: '/notices'
+      preLoaderRoute: typeof AuthenticatedNoticesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/operations': {
+      id: '/_authenticated/operations'
+      path: '/operations'
+      fullPath: '/operations'
+      preLoaderRoute: typeof AuthenticatedOperationsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/podcast': {
+      id: '/_authenticated/podcast'
+      path: '/podcast'
+      fullPath: '/podcast'
+      preLoaderRoute: typeof AuthenticatedPodcastRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/profile': {
+      id: '/_authenticated/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof AuthenticatedProfileRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/receiver': {
+      id: '/_authenticated/receiver'
+      path: '/receiver'
+      fullPath: '/receiver'
+      preLoaderRoute: typeof AuthenticatedReceiverRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/upload': {
+      id: '/_authenticated/upload'
+      path: '/upload'
+      fullPath: '/upload'
+      preLoaderRoute: typeof AuthenticatedUploadRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/manga/$id': {
@@ -321,18 +417,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMangaIdIndexRouteImport
       parentRoute: typeof AuthenticatedMangaIdRoute
     }
-    '/_authenticated/manga/$id/read/$chapterId': {
-      id: '/_authenticated/manga/$id/read/$chapterId'
-      path: '/read/$chapterId'
-      fullPath: '/manga/$id/read/$chapterId'
-      preLoaderRoute: typeof AuthenticatedMangaIdReadChapterIdRouteImport
-      parentRoute: typeof AuthenticatedMangaIdRoute
-    }
     '/_authenticated/manga/$id/chapter/$chapterId': {
       id: '/_authenticated/manga/$id/chapter/$chapterId'
       path: '/chapter/$chapterId'
       fullPath: '/manga/$id/chapter/$chapterId'
       preLoaderRoute: typeof AuthenticatedMangaIdChapterChapterIdRouteImport
+      parentRoute: typeof AuthenticatedMangaIdRoute
+    }
+    '/_authenticated/manga/$id/read/$chapterId': {
+      id: '/_authenticated/manga/$id/read/$chapterId'
+      path: '/read/$chapterId'
+      fullPath: '/manga/$id/read/$chapterId'
+      preLoaderRoute: typeof AuthenticatedMangaIdReadChapterIdRouteImport
       parentRoute: typeof AuthenticatedMangaIdRoute
     }
   }
@@ -358,12 +454,17 @@ const AuthenticatedMangaIdRouteWithChildren =
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAboutRoute: typeof AuthenticatedAboutRoute
   AuthenticatedAccountRoute: typeof AuthenticatedAccountRoute
+  AuthenticatedDevicesRoute: typeof AuthenticatedDevicesRoute
+  AuthenticatedDiagnosticsRoute: typeof AuthenticatedDiagnosticsRoute
   AuthenticatedHomeRoute: typeof AuthenticatedHomeRoute
   AuthenticatedInternalRoute: typeof AuthenticatedInternalRoute
   AuthenticatedMembersRoute: typeof AuthenticatedMembersRoute
   AuthenticatedMusicRoute: typeof AuthenticatedMusicRoute
+  AuthenticatedNoticesRoute: typeof AuthenticatedNoticesRoute
+  AuthenticatedOperationsRoute: typeof AuthenticatedOperationsRoute
   AuthenticatedPodcastRoute: typeof AuthenticatedPodcastRoute
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
+  AuthenticatedReceiverRoute: typeof AuthenticatedReceiverRoute
   AuthenticatedUploadRoute: typeof AuthenticatedUploadRoute
   AuthenticatedMangaIdRoute: typeof AuthenticatedMangaIdRouteWithChildren
 }
@@ -371,12 +472,17 @@ interface AuthenticatedRouteRouteChildren {
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAboutRoute: AuthenticatedAboutRoute,
   AuthenticatedAccountRoute: AuthenticatedAccountRoute,
+  AuthenticatedDevicesRoute: AuthenticatedDevicesRoute,
+  AuthenticatedDiagnosticsRoute: AuthenticatedDiagnosticsRoute,
   AuthenticatedHomeRoute: AuthenticatedHomeRoute,
   AuthenticatedInternalRoute: AuthenticatedInternalRoute,
   AuthenticatedMembersRoute: AuthenticatedMembersRoute,
   AuthenticatedMusicRoute: AuthenticatedMusicRoute,
+  AuthenticatedNoticesRoute: AuthenticatedNoticesRoute,
+  AuthenticatedOperationsRoute: AuthenticatedOperationsRoute,
   AuthenticatedPodcastRoute: AuthenticatedPodcastRoute,
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
+  AuthenticatedReceiverRoute: AuthenticatedReceiverRoute,
   AuthenticatedUploadRoute: AuthenticatedUploadRoute,
   AuthenticatedMangaIdRoute: AuthenticatedMangaIdRouteWithChildren,
 }
@@ -392,3 +498,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

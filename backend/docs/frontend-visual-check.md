@@ -1,0 +1,2 @@
+
+The `/auth` route rendered as a polished two-column sign-in surface. The visual hierarchy includes a clear school operations label, NoticeFlow brand, server-authoritative/multi-branch/audit-ready value cards, a focused work email/password form, and a visible configuration notice when `VITE_SCHOOL_API_URL` is absent. The browser exposed functional email, password, and submit controls. The submit button intentionally remains disabled until the frontend is connected to a real backend URL.

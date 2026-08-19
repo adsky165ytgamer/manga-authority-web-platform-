@@ -1,175 +1,191 @@
-import { createFileRoute, useRouter, redirect } from "@tanstack/react-router";
+import { createFileRoute, redirect, useRouter } from "@tanstack/react-router";
+import {
+  AlertCircle,
+  ArrowRight,
+  Building2,
+  Loader2,
+  LockKeyhole,
+  Mail,
+  RadioTower,
+  ShieldCheck,
+} from "lucide-react";
 import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { usernameToEmail } from "@/lib/username";
 import { toast } from "sonner";
-import { z } from "zod";
-import { Loader2 } from "lucide-react";
+import { SchoolApiError, schoolApi } from "@/lib/school-api";
 
 export const Route = createFileRoute("/auth")({
   ssr: false,
   beforeLoad: async () => {
-    const { data } = await supabase.auth.getUser();
-    if (data.user) throw redirect({ to: "/home" });
+    if (!schoolApi.getUserSession()) return;
+    let valid = false;
+    try {
+      await schoolApi.me();
+      valid = true;
+    } catch {
+      schoolApi.setUserSession(null);
+    }
+    if (valid) throw redirect({ to: "/home" });
   },
   component: AuthPage,
 });
 
-const schema = z.object({
-  username: z.string().trim().min(3, "Username must be at least 3 characters").max(32).regex(/^[a-zA-Z0-9_.-]+$/, "Only letters, numbers, . _ -"),
-  password: z.string().min(6, "Password must be at least 6 characters").max(72),
-});
-
 function AuthPage() {
-  const [mode, setMode] = useState<"login" | "register">("login");
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirm, setConfirm] = useState("");
-  const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
-    const parsed = schema.safeParse({ username, password });
-    if (!parsed.success) {
-      toast.error(parsed.error.issues[0].message);
-      return;
-    }
-    if (mode === "register" && password !== confirm) {
-      toast.error("Passwords do not match");
-      return;
-    }
+  async function submit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
     setLoading(true);
-    const email = usernameToEmail(username);
     try {
-      if (mode === "login") {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            data: { username: username.trim().toLowerCase() },
-            emailRedirectTo: `${window.location.origin}/home`,
-          },
-        });
-        if (error) throw error;
-      }
-      router.navigate({ to: "/home", replace: true });
-    } catch (err: any) {
-      toast.error(err?.message ?? "Authentication failed");
+      await schoolApi.login(email.trim(), password);
+      toast.success("Secure session established");
+      await router.navigate({ to: "/home", replace: true });
+    } catch (error) {
+      toast.error(error instanceof SchoolApiError ? error.message : "Could not sign in");
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <div className="min-h-screen bg-black flex items-center justify-center px-4 py-10">
-      <div className="w-full max-w-md">
-        <div className="mb-8 text-center">
-          <div className="mb-2 flex items-center justify-center gap-3">
-            <span className="h-px w-6 bg-silver/60" />
-            <span className="silver-text font-display text-[10px] tracking-[0.4em]">THE</span>
-            <span className="h-px w-6 bg-silver/60" />
+    <main className="min-h-screen overflow-hidden bg-[#07101a] text-slate-100">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_15%,rgba(70,160,190,0.18),transparent_30%),radial-gradient(circle_at_85%_78%,rgba(219,146,65,0.14),transparent_28%)]" />
+      <div className="relative mx-auto grid min-h-screen max-w-7xl items-center gap-12 px-6 py-10 lg:grid-cols-[1.1fr_0.9fr] lg:px-12">
+        <section className="hidden lg:block">
+          <div className="mb-10 inline-flex items-center gap-3 rounded-full border border-cyan-300/20 bg-cyan-300/[0.06] px-4 py-2 text-xs font-semibold uppercase tracking-[0.24em] text-cyan-100/80">
+            <RadioTower className="h-4 w-4 text-cyan-300" /> School operations network
           </div>
-          <h1 className="silver-text font-display text-4xl font-extrabold tracking-widest">MANGA</h1>
-          <div className="mt-1 silver-text font-display text-sm tracking-[0.35em]">AUTHORITY</div>
-        </div>
-
-        <div className="metal-card p-6 sm:p-8 animate-fade-in">
-          <div className="mb-6 grid grid-cols-2 rounded-lg bg-black/60 p-1 metal-border">
-            {(["login", "register"] as const).map((m) => (
-              <button
-                key={m}
-                onClick={() => setMode(m)}
-                className={`rounded-md py-2 text-xs font-semibold tracking-widest uppercase transition ${
-                  mode === m ? "bg-gradient-to-b from-white/15 to-white/5 text-silver-bright" : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                {m === "login" ? "Login" : "Register"}
-              </button>
-            ))}
-          </div>
-
-          <form onSubmit={submit} className="space-y-4">
-            <Field label="Username">
-              <input
-                autoComplete="username"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                className="input-metal"
-                placeholder="tarun"
-                required
-              />
-            </Field>
-            <Field label="Password">
-              <input
-                type="password"
-                autoComplete={mode === "login" ? "current-password" : "new-password"}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="input-metal"
-                placeholder="••••••••"
-                required
-              />
-            </Field>
-            {mode === "register" && (
-              <Field label="Confirm Password">
-                <input
-                  type="password"
-                  autoComplete="new-password"
-                  value={confirm}
-                  onChange={(e) => setConfirm(e.target.value)}
-                  className="input-metal"
-                  placeholder="••••••••"
-                  required
-                />
-              </Field>
-            )}
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="btn-metal hover:btn-metal-hover w-full rounded-lg py-3 text-sm font-bold tracking-[0.2em] disabled:opacity-60"
-            >
-              {loading ? (
-                <span className="inline-flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" /> Please wait…</span>
-              ) : mode === "login" ? "LOGIN" : "CREATE ACCOUNT"}
-            </button>
-          </form>
-
-          <p className="mt-5 text-center text-xs text-muted-foreground">
-            Private access — for Manga Authority members only.
+          <p className="mb-5 max-w-xl text-sm font-semibold uppercase tracking-[0.32em] text-amber-200/70">
+            NoticeFlow / command center
           </p>
-        </div>
-      </div>
-      <style>{`
-        .input-metal {
-          width: 100%;
-          background: #0a0a0a;
-          border: 1px solid #2b2b2b;
-          border-radius: 0.5rem;
-          padding: 0.65rem 0.85rem;
-          color: #E8E8E8;
-          font-size: 0.9rem;
-          outline: none;
-          transition: border-color .2s, box-shadow .2s;
-        }
-        .input-metal:focus {
-          border-color: #6a6a6a;
-          box-shadow: 0 0 0 3px rgba(192,192,192,0.12);
-        }
-      `}</style>
-    </div>
-  );
-}
+          <h1 className="max-w-3xl text-6xl font-semibold leading-[0.98] tracking-[-0.055em] text-white xl:text-7xl">
+            One trusted signal for every classroom.
+          </h1>
+          <p className="mt-7 max-w-xl text-lg leading-8 text-slate-300/75">
+            Create, target, deliver, and acknowledge school notices from a single operational
+            surface built for unreliable networks and real devices.
+          </p>
+          <div className="mt-10 grid max-w-xl grid-cols-3 gap-3">
+            {[
+              [ShieldCheck, "Server authoritative"],
+              [Building2, "Multi-branch"],
+              [LockKeyhole, "Audit ready"],
+            ].map(([Icon, label]) => {
+              const Mark = Icon as typeof ShieldCheck;
+              return (
+                <div
+                  key={label as string}
+                  className="rounded-2xl border border-white/10 bg-white/[0.045] p-4"
+                >
+                  <Mark className="h-5 w-5 text-cyan-300" />
+                  <p className="mt-4 text-xs font-medium leading-5 text-slate-300">
+                    {label as string}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        </section>
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <label className="block">
-      <span className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.2em] text-silver">{label}</span>
-      {children}
-    </label>
+        <section className="mx-auto w-full max-w-md">
+          <div className="mb-8 lg:hidden">
+            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-cyan-200/70">
+              NoticeFlow command center
+            </p>
+            <h1 className="mt-3 text-4xl font-semibold tracking-tight text-white">
+              School operations, in sync.
+            </h1>
+          </div>
+          <div className="rounded-[2rem] border border-white/12 bg-slate-950/80 p-7 shadow-2xl shadow-black/30 backdrop-blur-xl sm:p-9">
+            <div className="mb-8">
+              <div className="flex items-center gap-3">
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-cyan-300 text-slate-950">
+                  <RadioTower className="h-5 w-5" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold tracking-tight text-white">NoticeFlow</p>
+                  <p className="text-xs text-slate-400">School notice platform</p>
+                </div>
+              </div>
+              <h2 className="mt-8 text-2xl font-semibold tracking-tight text-white">
+                Welcome back
+              </h2>
+              <p className="mt-2 text-sm leading-6 text-slate-400">
+                Sign in with the account provisioned for your organization.
+              </p>
+            </div>
+            {!schoolApi.isConfigured && (
+              <div className="mb-6 flex gap-3 rounded-2xl border border-amber-200/20 bg-amber-100/[0.06] p-4 text-sm text-amber-100/80">
+                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-200" />
+                <p>
+                  Set{" "}
+                  <code className="rounded bg-black/30 px-1.5 py-0.5 text-xs">
+                    VITE_SCHOOL_API_URL
+                  </code>{" "}
+                  to point this UI at the deployed backend.
+                </p>
+              </div>
+            )}
+            <form className="space-y-5" onSubmit={submit}>
+              <label className="block">
+                <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                  Work email
+                </span>
+                <span className="relative block">
+                  <Mail className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+                  <input
+                    className="w-full rounded-2xl border border-white/10 bg-white/[0.045] py-3.5 pl-11 pr-4 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-cyan-300/60 focus:ring-4 focus:ring-cyan-300/10"
+                    type="email"
+                    value={email}
+                    onChange={(event) => setEmail(event.target.value)}
+                    placeholder="you@school.org"
+                    required
+                  />
+                </span>
+              </label>
+              <label className="block">
+                <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                  Password
+                </span>
+                <span className="relative block">
+                  <LockKeyhole className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+                  <input
+                    className="w-full rounded-2xl border border-white/10 bg-white/[0.045] py-3.5 pl-11 pr-4 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-cyan-300/60 focus:ring-4 focus:ring-cyan-300/10"
+                    type="password"
+                    value={password}
+                    onChange={(event) => setPassword(event.target.value)}
+                    placeholder="Your secure password"
+                    minLength={8}
+                    required
+                  />
+                </span>
+              </label>
+              <button
+                disabled={loading || !schoolApi.isConfigured}
+                className="group flex w-full items-center justify-center gap-2 rounded-2xl bg-cyan-300 py-3.5 text-sm font-bold text-slate-950 transition hover:bg-cyan-200 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {loading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <>
+                    Enter command center{" "}
+                    <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
+                  </>
+                )}
+              </button>
+            </form>
+            <p className="mt-6 text-center text-xs leading-5 text-slate-500">
+              Accounts are created and scoped by an organization administrator. There is no public
+              self-registration.
+            </p>
+          </div>
+          <p className="mt-6 text-center text-xs text-slate-600">
+            Offline-first receivers · server-authoritative delivery · auditable acknowledgements
+          </p>
+        </section>
+      </div>
+    </main>
   );
 }

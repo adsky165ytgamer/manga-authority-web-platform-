@@ -1,82 +1,76 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { emailToUsername } from "@/lib/username";
-import { BookOpen, Layers, Shield, User as UserIcon, Calendar } from "lucide-react";
+import { Building2, Mail, ShieldCheck, UserRound } from "lucide-react";
+import { schoolApi } from "@/lib/school-api";
 
-export const Route = createFileRoute("/_authenticated/profile")({
-  component: ProfilePage,
-});
-
-async function loadProfile(userId: string, email: string | undefined) {
-  const [profileRes, roleRes, mangaRes, chapRes] = await Promise.all([
-    supabase.from("profiles").select("username, created_at").eq("id", userId).maybeSingle(),
-    supabase.from("user_roles").select("role").eq("user_id", userId),
-    supabase.from("manga").select("id", { count: "exact", head: true }).eq("created_by", userId),
-    supabase.from("chapters").select("id, manga!inner(created_by)", { count: "exact", head: true }).eq("manga.created_by", userId),
-  ]);
-  return {
-    username: profileRes.data?.username ?? emailToUsername(email),
-    createdAt: profileRes.data?.created_at ?? null,
-    roles: (roleRes.data ?? []).map((r) => r.role),
-    mangaCount: mangaRes.count ?? 0,
-    chapterCount: chapRes.count ?? 0,
-  };
-}
+export const Route = createFileRoute("/_authenticated/profile")({ component: ProfilePage });
 
 function ProfilePage() {
-  const { user } = Route.useRouteContext() as { user: { id: string; email?: string } };
-  const { data, isLoading } = useQuery({
-    queryKey: ["profile", user.id],
-    queryFn: () => loadProfile(user.id, user.email),
+  const session = schoolApi.getUserSession();
+  const profile = useQuery({
+    queryKey: ["school-profile"],
+    queryFn: schoolApi.me,
+    enabled: schoolApi.isConfigured,
   });
-
-  const roleLabels: Record<string, string> = {
-    admin: "Administrator", leader: "Leader / Author", manager: "Manager", sub_manager: "Sub-Manager",
-    writer: "Writer", reviewer: "Reviewer", music_producer: "Music Producer", uploader: "Uploader", reader: "Member",
-  };
-  const role = data?.roles.map((r) => roleLabels[r] ?? r).join(" · ") || "Member";
-
+  const user = profile.data ?? session?.user;
   return (
-    <div className="max-w-3xl mx-auto">
-      <div className="mb-6">
-        <h1 className="silver-text font-display text-3xl sm:text-4xl font-bold tracking-wider">PROFILE</h1>
+    <div className="mx-auto max-w-3xl space-y-8 animate-fade-in">
+      <div>
+        <p className="text-xs font-bold uppercase tracking-[0.24em] text-cyan-200/65">
+          Workspace / identity
+        </p>
+        <h1 className="mt-3 text-4xl font-semibold tracking-[-0.04em] text-white sm:text-5xl">
+          Your operator profile.
+        </h1>
+        <p className="mt-3 text-sm leading-6 text-slate-400">
+          This identity controls what your organization, branch, and classroom scopes can do in the
+          platform.
+        </p>
       </div>
-
-      {isLoading || !data ? (
-        <div className="text-center text-muted-foreground py-16">Loading…</div>
-      ) : (
-        <div className="metal-card p-6 sm:p-8 animate-fade-in">
-          <div className="flex items-center gap-4 pb-6 border-b border-border">
-            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-neutral-800 to-black metal-border">
-              <UserIcon className="h-8 w-8 text-silver" />
-            </div>
-            <div>
-              <div className="silver-text font-display text-2xl font-bold tracking-wide">@{data.username}</div>
-              <div className="mt-1 inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-silver/80">
-                <Shield className="h-3.5 w-3.5" /> {role}
-              </div>
-            </div>
+      <section className="rounded-[2rem] border border-white/10 bg-white/[0.035] p-6 sm:p-8">
+        <div className="flex flex-col gap-5 border-b border-white/8 pb-7 sm:flex-row sm:items-center">
+          <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-cyan-300/10 text-cyan-200">
+            <UserRound className="h-7 w-7" />
           </div>
-
-          <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <Stat icon={Calendar} label="Joined" value={data.createdAt ? new Date(data.createdAt).toLocaleDateString() : "—"} />
-            <Stat icon={BookOpen} label="Manga" value={String(data.mangaCount)} />
-            <Stat icon={Layers} label="Chapters" value={String(data.chapterCount)} />
+          <div>
+            <h2 className="text-2xl font-semibold text-white">
+              {user?.name ?? "Unknown operator"}
+            </h2>
+            <p className="mt-1 text-sm text-slate-500">{user?.email ?? "Email unavailable"}</p>
           </div>
+          <span className="inline-flex items-center gap-2 rounded-full bg-emerald-300/10 px-3 py-2 text-xs font-semibold uppercase tracking-widest text-emerald-200 sm:ml-auto">
+            <ShieldCheck className="h-3.5 w-3.5" /> {user?.role?.replaceAll("_", " ") ?? "Viewer"}
+          </span>
         </div>
-      )}
+        <div className="mt-7 grid gap-4 sm:grid-cols-2">
+          <Detail icon={Building2} label="Organization ID" value={user?.organizationId ?? "—"} />
+          <Detail icon={Mail} label="Signed-in email" value={user?.email ?? "—"} />
+        </div>
+      </section>
+      <div className="rounded-3xl border border-cyan-300/15 bg-cyan-300/[0.05] p-5 text-sm leading-6 text-slate-400">
+        <span className="font-semibold text-cyan-100">Security note:</span> sender actions are
+        checked again by the backend. The UI never decides whether a user may target an
+        organization, branch, classroom, or device.
+      </div>
     </div>
   );
 }
-
-function Stat({ icon: Icon, label, value }: { icon: typeof BookOpen; label: string; value: string }) {
+function Detail({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: typeof Building2;
+  label: string;
+  value: string;
+}) {
   return (
-    <div className="metal-border rounded-lg bg-black/40 p-4">
-      <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-silver/70">
-        <Icon className="h-3.5 w-3.5" /> {label}
-      </div>
-      <div className="mt-2 silver-text font-display text-2xl font-bold">{value}</div>
+    <div className="rounded-2xl border border-white/8 bg-black/15 p-4">
+      <Icon className="h-4 w-4 text-cyan-200" />
+      <p className="mt-3 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-600">
+        {label}
+      </p>
+      <p className="mt-2 break-all text-xs font-medium text-slate-300">{value}</p>
     </div>
   );
 }

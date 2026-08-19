@@ -42,6 +42,7 @@ import { assignDevice, deviceConfig, heartbeat, registerDevice } from "./modules
 import {
   acknowledge,
   createNotice,
+  listNotices,
   retractNotice,
   syncForDevice,
   type NoticeInput,
@@ -226,6 +227,25 @@ export async function createApp(): Promise<FastifyInstance> {
     ),
   );
 
+  app.get("/api/v1/notices", async (request, reply) => {
+    const principal = requireUser(request, [
+      "SUPER_ADMIN",
+      "ORGANIZATION_ADMIN",
+      "BRANCH_ADMIN",
+      "PRINCIPAL",
+      "TEACHER",
+      "STAFF",
+      "VIEWER",
+    ]);
+    const input = query(
+      z.object({
+        limit: z.coerce.number().int().min(1).max(100).default(50),
+        before: z.string().datetime({ offset: true }).optional(),
+      }),
+      request.query,
+    );
+    return ok(reply, await listNotices(principal.organizationId, input));
+  });
   app.post("/api/v1/notices", async (request, reply) => {
     const principal = requireUser(request, [
       "SUPER_ADMIN",

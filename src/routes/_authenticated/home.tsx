@@ -1,179 +1,289 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { signPaths } from "@/lib/storage";
-import { BookOpen, Search, Trash2, Loader2 } from "lucide-react";
-import { useMemo, useState, useEffect } from "react";
-import { deleteMangaCompletely } from "@/lib/manga-admin";
-import { toast } from "sonner";
+import {
+  Activity,
+  ArrowUpRight,
+  BellRing,
+  CheckCircle2,
+  ChevronRight,
+  CircleAlert,
+  Cpu,
+  Layers3,
+  Plus,
+  RadioTower,
+  RefreshCw,
+  ServerCog,
+  Wifi,
+} from "lucide-react";
+import { schoolApi, type DeviceRow, type SchoolNotice } from "@/lib/school-api";
 
-export const Route = createFileRoute("/_authenticated/home")({
-  component: HomePage,
-});
-
-type MangaCard = {
-  id: string;
-  title: string;
-  genre: string | null;
-  status: string;
-  cover_image: string | null;
-  chapter_count: number;
-  coverUrl: string | null;
-  created_by: string;
-};
-
-async function loadManga(): Promise<MangaCard[]> {
-  const { data: mangas, error } = await supabase
-    .from("manga")
-    .select("id, title, genre, status, cover_image, created_at, created_by")
-    .order("created_at", { ascending: false });
-  if (error) throw error;
-  if (!mangas || mangas.length === 0) return [];
-
-  const ids = mangas.map((m) => m.id);
-  const { data: chapters } = await supabase
-    .from("chapters")
-    .select("manga_id")
-    .in("manga_id", ids);
-  const counts = new Map<string, number>();
-  chapters?.forEach((c) => counts.set(c.manga_id, (counts.get(c.manga_id) ?? 0) + 1));
-
-  const covers = mangas.map((m) => m.cover_image).filter(Boolean) as string[];
-  const signed = await signPaths(covers);
-  const coverMap = new Map<string, string>();
-  covers.forEach((c, i) => coverMap.set(c, signed[i]));
-
-  return mangas.map((m: any) => ({
-    id: m.id,
-    title: m.title,
-    genre: m.genre,
-    status: m.status ?? "ongoing",
-    cover_image: m.cover_image,
-    chapter_count: counts.get(m.id) ?? 0,
-    coverUrl: m.cover_image ? coverMap.get(m.cover_image) ?? null : null,
-    created_by: m.created_by,
-  }));
-}
+export const Route = createFileRoute("/_authenticated/home")({ component: HomePage });
 
 function HomePage() {
-  const { data, isLoading, refetch } = useQuery({ queryKey: ["manga-list"], queryFn: loadManga });
-  const deleteManga = useServerFn(deleteMangaCompletely);
-  const [q, setQ] = useState("");
-  const [me, setMe] = useState<{ id: string; isAdmin: boolean; canManageContent: boolean } | null>(null);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
-
-  useEffect(() => {
-    (async () => {
-      const { data: auth } = await supabase.auth.getUser();
-      if (!auth.user) return;
-      const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", auth.user.id);
-      const roleSet = new Set((roles ?? []).map((r) => r.role));
-      setMe({
-        id: auth.user.id,
-        isAdmin: roleSet.has("admin"),
-        canManageContent: (["admin", "uploader", "leader", "manager", "sub_manager"] as const).some((role) => roleSet.has(role)),
-      });
-    })();
-  }, []);
-
-  const removeManga = async (e: React.MouseEvent, id: string, title: string) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (!confirm(`Delete "${title}" with every chapter, page and file? This cannot be undone.`)) return;
-    setDeletingId(id);
-    try {
-      await deleteManga({ data: { mangaId: id } });
-      toast.success("Manga deleted");
-      await refetch();
-    } catch (err: any) {
-      toast.error(err?.message ?? "Delete failed");
-    } finally {
-      setDeletingId(null);
-    }
-  };
-
-  const filtered = useMemo(() => {
-    if (!data) return [];
-    const s = q.trim().toLowerCase();
-    if (!s) return data;
-    return data.filter((m) =>
-      m.title.toLowerCase().includes(s) ||
-      (m.genre?.toLowerCase().includes(s) ?? false)
-    );
-  }, [data, q]);
+  const session = schoolApi.getUserSession();
+  const org = useQuery({
+    queryKey: ["school-org", session?.user.organizationId],
+    queryFn: () => schoolApi.organization(session!.user.organizationId),
+    enabled: Boolean(session) && schoolApi.isConfigured,
+  });
+  const devices = useQuery({
+    queryKey: ["school-devices"],
+    queryFn: schoolApi.devices,
+    enabled: schoolApi.isConfigured,
+    refetchInterval: 30_000,
+  });
+  const notices = useQuery({
+    queryKey: ["school-notices"],
+    queryFn: schoolApi.notices,
+    enabled: schoolApi.isConfigured,
+    refetchInterval: 30_000,
+  });
+  const diagnostics = useQuery({
+    queryKey: ["school-diagnostics"],
+    queryFn: schoolApi.diagnostics,
+    enabled: schoolApi.isConfigured,
+    refetchInterval: 30_000,
+  });
+  const rows = (devices.data ?? []) as DeviceRow[];
+  const recent = (notices.data?.notices ?? []) as SchoolNotice[];
+  const online = rows.filter((device) => device.status === "ONLINE").length;
+  const attention = rows.filter((device) => device.status === "OFFLINE").length;
+  const acknowledgement = Number(
+    (diagnostics.data?.acknowledgementsLast24Hours as number | undefined) ?? 0,
+  );
+  const latestRevision = String(
+    (diagnostics.data?.notices as { latest_revision?: number } | undefined)?.latest_revision ?? "—",
+  );
+  const organizationName = String(org.data?.name ?? "Your organization");
 
   return (
-    <div>
-      <div className="mb-6">
-        <h1 className="silver-text font-display text-3xl sm:text-4xl font-bold tracking-wider">LIBRARY</h1>
-        <p className="mt-1 text-sm text-muted-foreground">The Manga Authority archive.</p>
-      </div>
-
-      <div className="mb-6 relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-silver/60" />
-        <input
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder="Search title or genre…"
-          className="w-full bg-black/60 border border-border rounded-lg pl-10 pr-4 py-2.5 text-sm text-silver-bright placeholder:text-muted-foreground focus:border-silver/50 focus:outline-none focus:ring-2 focus:ring-silver/10 transition"
-        />
-      </div>
-
-      {isLoading && <div className="text-center text-muted-foreground py-16">Loading…</div>}
-
-      {!isLoading && data && data.length === 0 && (
-        <div className="metal-card p-10 text-center animate-fade-in">
-          <BookOpen className="mx-auto h-10 w-10 text-silver mb-3" />
-          <h2 className="silver-text font-display text-xl font-semibold">No manga yet</h2>
-          <p className="mt-2 text-sm text-muted-foreground">The archive is empty.</p>
+    <div className="space-y-8 animate-fade-in">
+      <div className="flex flex-col justify-between gap-5 md:flex-row md:items-end">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[0.24em] text-cyan-200/65">
+            {organizationName} / command center
+          </p>
+          <h1 className="mt-3 text-4xl font-semibold tracking-[-0.04em] text-white sm:text-5xl">
+            Good morning, {session?.user.name?.split(" ")[0] ?? "operator"}.
+          </h1>
+          <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-400">
+            See the health of every branch, send the next signal, and know exactly what each
+            receiver has done with it.
+          </p>
         </div>
-      )}
-
-      {!isLoading && filtered.length === 0 && data && data.length > 0 && (
-        <div className="text-center text-sm text-muted-foreground py-10">No matches for &ldquo;{q}&rdquo;.</div>
-      )}
-
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5">
-        {filtered.map((m) => (
+        <div className="flex flex-wrap gap-3">
           <Link
-            key={m.id}
-            to="/manga/$id"
-            params={{ id: m.id }}
-            className="metal-card group overflow-hidden transition hover:shadow-[0_0_28px_-8px_rgba(192,192,192,0.35)] hover:-translate-y-0.5 duration-300"
+            to="/notices"
+            className="inline-flex items-center gap-2 rounded-2xl bg-cyan-300 px-4 py-3 text-sm font-bold text-slate-950 transition hover:bg-cyan-200"
           >
-            <div className="aspect-[3/4] w-full overflow-hidden bg-gradient-to-br from-neutral-900 to-black relative">
-              {m.coverUrl ? (
-                <img src={m.coverUrl} alt={m.title} className="h-full w-full object-cover transition duration-500 group-hover:scale-105" loading="lazy" />
-              ) : (
-                <div className="flex h-full w-full items-center justify-center text-silver/40">
-                  <BookOpen className="h-12 w-12" />
-                </div>
-              )}
-              {me && (me.canManageContent || me.id === m.created_by) && (
-                <button
-                  onClick={(e) => removeManga(e, m.id, m.title)}
-                  disabled={deletingId === m.id}
-                  aria-label={`Delete ${m.title}`}
-                  className="absolute top-2 right-2 z-10 rounded-md border border-destructive/40 bg-black/75 p-1.5 text-destructive/90 backdrop-blur-sm transition hover:bg-destructive/20 hover:text-destructive disabled:opacity-50"
-                >
-                  {deletingId === m.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
-                </button>
-              )}
-              <div className="absolute top-2 left-2 bg-black/70 backdrop-blur-sm px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-widest text-silver-bright border border-silver/20">
-                {m.status}
-              </div>
-            </div>
-            <div className="p-3">
-              <h3 className="silver-text font-display text-sm sm:text-base font-bold tracking-wide truncate">{m.title}</h3>
-              {m.genre && <p className="mt-0.5 text-[10px] uppercase tracking-[0.2em] text-silver/70 truncate">{m.genre}</p>}
-              <div className="mt-1.5 text-[10px] font-semibold uppercase tracking-widest text-silver/50">
-                {m.chapter_count} Ch
-              </div>
-            </div>
+            <Plus className="h-4 w-4" /> Create notice
           </Link>
-        ))}
+          <Link
+            to="/diagnostics"
+            className="inline-flex items-center gap-2 rounded-2xl border border-white/12 px-4 py-3 text-sm font-semibold text-slate-300 transition hover:bg-white/[0.05]"
+          >
+            <Activity className="h-4 w-4" /> View diagnostics
+          </Link>
+        </div>
       </div>
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <Stat
+          icon={Cpu}
+          label="Devices online"
+          value={devices.isLoading ? "—" : `${online}/${rows.length}`}
+          hint={attention ? `${attention} need attention` : "All receivers healthy"}
+          tone={attention ? "amber" : "cyan"}
+        />
+        <Stat
+          icon={BellRing}
+          label="Notices in feed"
+          value={notices.isLoading ? "—" : String(recent.length)}
+          hint={`Latest revision ${latestRevision}`}
+          tone="white"
+        />
+        <Stat
+          icon={CheckCircle2}
+          label="Acknowledged today"
+          value={diagnostics.isLoading ? "—" : String(acknowledgement)}
+          hint="Server-confirmed receipts"
+          tone="emerald"
+        />
+        <Stat
+          icon={Wifi}
+          label="Network state"
+          value={schoolApi.isConfigured ? "Connected" : "Setup"}
+          hint={schoolApi.isConfigured ? "Live API configured" : "Add API URL to connect"}
+          tone={schoolApi.isConfigured ? "emerald" : "amber"}
+        />
+      </section>
+      <section className="grid gap-5 xl:grid-cols-[1.35fr_0.65fr]">
+        <div className="rounded-[2rem] border border-white/10 bg-white/[0.035] p-5 sm:p-7">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-slate-500">
+                Latest activity
+              </p>
+              <h2 className="mt-2 text-xl font-semibold text-white">Notice delivery feed</h2>
+            </div>
+            <Link
+              to="/notices"
+              className="inline-flex items-center gap-1 text-xs font-semibold text-cyan-200 hover:text-cyan-100"
+            >
+              View all <ChevronRight className="h-3.5 w-3.5" />
+            </Link>
+          </div>
+          <div className="mt-6 space-y-2">
+            {recent.slice(0, 5).map((notice) => (
+              <NoticeRow key={notice.id} notice={notice} />
+            ))}
+            {!recent.length && (
+              <EmptyState
+                icon={BellRing}
+                text={
+                  schoolApi.isConfigured
+                    ? "No notices have been created for this organization yet."
+                    : "Connect the frontend to the backend to load live notices."
+                }
+              />
+            )}
+          </div>
+        </div>
+        <div className="rounded-[2rem] border border-white/10 bg-gradient-to-br from-cyan-300/[0.11] via-white/[0.035] to-amber-200/[0.07] p-5 sm:p-7">
+          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-950/50 text-cyan-200">
+            <ServerCog className="h-5 w-5" />
+          </div>
+          <p className="mt-7 text-[10px] font-bold uppercase tracking-[0.22em] text-cyan-100/60">
+            Operational principle
+          </p>
+          <h2 className="mt-3 text-2xl font-semibold leading-tight text-white">
+            Realtime is a wake-up call. Sync is the source of truth.
+          </h2>
+          <p className="mt-4 text-sm leading-6 text-slate-300/70">
+            Even when a receiver loses Wi-Fi, the revision cursor brings it back to the exact state
+            the server expects.
+          </p>
+          <Link
+            to="/receiver"
+            className="mt-7 inline-flex items-center gap-2 text-sm font-semibold text-cyan-100 hover:text-white"
+          >
+            Open receiver lab <ArrowUpRight className="h-4 w-4" />
+          </Link>
+        </div>
+      </section>
+      <section className="rounded-[2rem] border border-white/10 bg-[#0a1622] p-5 sm:p-7">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-slate-500">
+              Receiver heartbeat
+            </p>
+            <h2 className="mt-2 text-xl font-semibold text-white">Network at a glance</h2>
+          </div>
+          <button
+            onClick={() => {
+              void devices.refetch();
+              void diagnostics.refetch();
+            }}
+            className="rounded-xl border border-white/10 p-2 text-slate-400 transition hover:border-cyan-200/30 hover:text-cyan-100"
+            title="Refresh"
+          >
+            <RefreshCw className={`h-4 w-4 ${devices.isFetching ? "animate-spin" : ""}`} />
+          </button>
+        </div>
+        <div className="mt-5 grid gap-3 md:grid-cols-3">
+          {rows.slice(0, 6).map((device) => (
+            <DeviceMini key={device.id} device={device} />
+          ))}
+          {!rows.length && (
+            <EmptyState icon={Cpu} text="No enrolled devices are visible in this organization." />
+          )}
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function Stat({
+  icon: Icon,
+  label,
+  value,
+  hint,
+  tone,
+}: {
+  icon: typeof Cpu;
+  label: string;
+  value: string;
+  hint: string;
+  tone: "cyan" | "white" | "emerald" | "amber";
+}) {
+  const colors = {
+    cyan: "text-cyan-200",
+    white: "text-white",
+    emerald: "text-emerald-200",
+    amber: "text-amber-200",
+  };
+  return (
+    <div className="rounded-3xl border border-white/10 bg-white/[0.035] p-5">
+      <div className="flex items-center justify-between">
+        <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500">{label}</p>
+        <Icon className={`h-4 w-4 ${colors[tone]}`} />
+      </div>
+      <p className={`mt-5 text-3xl font-semibold tracking-tight ${colors[tone]}`}>{value}</p>
+      <p className="mt-2 text-xs text-slate-500">{hint}</p>
+    </div>
+  );
+}
+function NoticeRow({ notice }: { notice: SchoolNotice }) {
+  return (
+    <div className="flex items-center gap-3 rounded-2xl border border-white/7 bg-black/10 px-4 py-3 transition hover:bg-white/[0.04]">
+      <div
+        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${notice.priority === "EMERGENCY" ? "bg-rose-300/10 text-rose-200" : notice.priority === "HIGH" ? "bg-amber-300/10 text-amber-200" : "bg-cyan-300/10 text-cyan-200"}`}
+      >
+        <BellRing className="h-4 w-4" />
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-semibold text-white">{notice.title}</p>
+        <p className="mt-1 truncate text-xs text-slate-500">
+          {notice.targetType.toLowerCase()} · {notice.recipientCount ?? 0} receivers · revision{" "}
+          {notice.revision}
+        </p>
+      </div>
+      <span
+        className={`hidden rounded-full px-2 py-1 text-[10px] font-bold uppercase tracking-widest sm:block ${notice.isDeleted ? "bg-rose-300/10 text-rose-200" : "bg-emerald-300/10 text-emerald-200"}`}
+      >
+        {notice.isDeleted ? "Retracted" : notice.expired ? "Expired" : "Live"}
+      </span>
+    </div>
+  );
+}
+function DeviceMini({ device }: { device: DeviceRow }) {
+  const color =
+    device.status === "ONLINE"
+      ? "bg-emerald-300"
+      : device.status === "RECENTLY_ONLINE"
+        ? "bg-amber-300"
+        : "bg-rose-300";
+  return (
+    <div className="flex items-center gap-3 rounded-2xl border border-white/8 bg-white/[0.025] p-3">
+      <span
+        className={`h-2 w-2 rounded-full ${color} ${device.status === "ONLINE" ? "shadow-[0_0_12px_rgba(110,231,183,0.8)]" : ""}`}
+      />
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-xs font-semibold text-white">{device.label}</p>
+        <p className="mt-1 truncate text-[11px] text-slate-500">
+          {device.classroom_name ?? device.branch_name ?? "Unassigned"}
+        </p>
+      </div>
+      <span className="text-[10px] uppercase tracking-widest text-slate-600">
+        {device.status.replaceAll("_", " ")}
+      </span>
+    </div>
+  );
+}
+function EmptyState({ icon: Icon, text }: { icon: typeof BellRing; text: string }) {
+  return (
+    <div className="flex items-center gap-3 rounded-2xl border border-dashed border-white/10 px-4 py-7 text-sm text-slate-500">
+      <Icon className="h-4 w-4 shrink-0 text-slate-600" />
+      {text}
     </div>
   );
 }
