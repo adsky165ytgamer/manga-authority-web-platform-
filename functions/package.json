@@ -1,0 +1,27 @@
+{
+  "name": "noticeflow-firebase-functions",
+  "private": true,
+  "engines": { "node": "20" },
+  "main": "lib/index.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "lint": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run --config vitest.config.ts",
+    "test:emulator": "firebase emulators:exec --project noticeflow-rules-test --only firestore,auth \"npm run test\"",
+    "serve": "npm run build && firebase emulators:start --only functions,firestore,auth",
+    "deploy": "firebase deploy --only functions,firestore:rules,firestore:indexes"
+  },
+  "dependencies": {
+    "firebase-admin": "^13.0.0",
+    "firebase-functions": "^6.0.0",
+    "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^3.0.4",
+    "@types/node": "^20.17.0",
+    "firebase": "^10.14.1",
+    "firebase-tools": "^13.31.0",
+    "typescript": "^5.7.0",
+    "vitest": "^2.1.0"
+  }
+}

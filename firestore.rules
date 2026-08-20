@@ -1,0 +1,69 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function hasUserProfile() { return signedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)); }
+    function userProfile() { return get(/databases/$(database)/documents/users/$(request.auth.uid)).data; }
+    function hasReceiverProfile() { return signedIn() && exists(/databases/$(database)/documents/receiverProfiles/$(request.auth.uid)); }
+    function receiverProfile() { return get(/databases/$(database)/documents/receiverProfiles/$(request.auth.uid)).data; }
+    function enabledStaff() {
+      return hasUserProfile() && userProfile().enabled == true &&
+        (userProfile().role == 'ADMIN' || userProfile().role == 'TEACHER');
+    }
+    function enabledAdmin() { return enabledStaff() && userProfile().data.role == 'ADMIN'; }
+    function staffOrganization() { return userProfile().organizationId; }
+    function enabledReceiver() {
+      return hasReceiverProfile() && receiverProfile().enabled == true &&
+        receiverProfile().authUid == request.auth.uid;
+    }
+
+    match /organizations/{organizationId} {
+      allow get: if enabledStaff() && staffOrganization() == organizationId;
+      allow list, create, update, delete: if false;
+    }
+
+    match /classrooms/{classroomId} {
+      allow read: if enabledStaff() && resource.data.organizationId == staffOrganization();
+      allow write: if false;
+    }
+
+    match /users/{authUid} {
+      allow get: if signedIn() && authUid == request.auth.uid;
+      allow list, create, update, delete: if false;
+    }
+
+    match /receiverProfiles/{authUid} {
+      allow get: if signedIn() && authUid == request.auth.uid;
+      allow list, create, update, delete: if false;
+    }
+
+    match /installations/{installationId} {
+      allow get: if signedIn() && resource.data.authUid == request.auth.uid;
+      allow list, create, update, delete: if false;
+    }
+
+    match /notices/{noticeId} {
+      allow get, list: if (enabledStaff() && resource.data.organizationId == staffOrganization()) ||
+        (enabledReceiver() && resource.data.status == 'PUBLISHED' &&
+         resource.data.organizationId == receiverProfile().organizationId &&
+         resource.data.targetType == 'CLASSROOM' &&
+         resource.data.targetId == receiverProfile().classroomId);
+      allow create, update, delete: if false;
+    }
+
+    match /acknowledgements/{acknowledgementId} {
+      allow get: if enabledReceiver() && resource.data.authUid == request.auth.uid;
+      allow create: if enabledReceiver() &&
+        request.resource.data.authUid == request.auth.uid &&
+        request.resource.data.installationId == receiverProfile().installationId &&
+        request.resource.data.organizationId == receiverProfile().organizationId &&
+        request.resource.data.classroomId == receiverProfile().classroomId;
+      allow update: if false;
+      allow list, delete: if false;
+    }
+
+    match /receiverEnrollmentCodes/{codeId} { allow read, write: if false; }
+    match /deliveryEvents/{eventId} { allow read, write: if false; }
+    match /system/{document} { allow read, write: if false; }
+  }
+}

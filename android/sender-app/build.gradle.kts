@@ -1,23 +1,20 @@
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
+    id("com.google.gms.google-services") apply false
 }
-
-val apiUrl = providers.gradleProperty("NOTICEFLOW_API_URL").orElse("https://noticeflow.example.invalid").get()
-val wsUrl = providers.gradleProperty("NOTICEFLOW_WS_URL").orElse("wss://noticeflow.example.invalid").get()
+if (file("google-services.json").exists()) apply(plugin = "com.google.gms.google-services")
 
 android {
     namespace = "com.noticeflow.sender"
     compileSdk = 36
     defaultConfig { applicationId = "com.noticeflow.sender"; minSdk = 29; targetSdk = 36; versionCode = 1; versionName = "1.0.0" }
     buildFeatures { buildConfig = true }
-    buildTypes {
-        debug { buildConfigField("String", "NOTICEFLOW_API_URL", "\"$apiUrl\""); buildConfigField("String", "NOTICEFLOW_WS_URL", "\"$wsUrl\"") }
-        release { isMinifyEnabled = false; buildConfigField("String", "NOTICEFLOW_API_URL", "\"$apiUrl\""); buildConfigField("String", "NOTICEFLOW_WS_URL", "\"$wsUrl\"") }
-    }
+    buildTypes { release { isMinifyEnabled = false } }
     compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
-    kotlinOptions { jvmTarget = "17" }
 }
+
+kotlin { compilerOptions { jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17) } }
 
 dependencies {
     implementation(project(":school-notice-core"))

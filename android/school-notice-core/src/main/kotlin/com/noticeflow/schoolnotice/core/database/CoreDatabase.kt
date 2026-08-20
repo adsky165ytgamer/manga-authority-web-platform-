@@ -11,7 +11,6 @@ import androidx.room.Query
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.Upsert
-import com.noticeflow.schoolnotice.core.model.NoticeLifecycle
 import kotlinx.coroutines.flow.Flow
 
 @Entity(tableName = "device_configuration")

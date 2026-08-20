@@ -2,5 +2,6 @@
 build/
 **/build/
 local.properties
+google-services.json
 *.iml
 .idea/
