@@ -1,0 +1,3 @@
+- [ ] Restore Manga Authority branding and remove NoticeFlow presentation from the public entry and sign-in screens.
+- [ ] Connect Google sign-in to the existing Manga Authority account/backend flow without exposing uploaded private credentials.
+- [ ] Verify affected routes and preview diagnostics; apply the required package security update.
